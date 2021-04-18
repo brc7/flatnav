@@ -1,3 +1,12 @@
+## Instructions with CMake 
+
+1. `$ cd flatnav`
+2. `$ mkdir bin && cd bin`
+3. `$ cmake ..`
+4. `$ make` 
+
+This will generate an executable called `construct` and an executable called `query`.
+
 
 ### List of things to do
 
