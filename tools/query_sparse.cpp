@@ -18,17 +18,25 @@ int main(int argc, char **argv){
 
     if (argc < 9){
         std::clog<<"Usage: "<<std::endl; 
-        std::clog<<"query <space> <index> <queries> <gtruth> <ef_search> <k> <Reorder ID> <graph.mtx>"<<std::endl;
+        std::clog<<"query <space> <index> <queries> <gtruth> <ef_search> <k> <Reorder ID> <graph.mtx> --reprune"<<std::endl;
         std::clog<<"\t <data> <queries> <gtruth>: .npy files (float, float, int) from ann-benchmarks"<<std::endl;
         std::clog<<"\t <M>: int number of links"<<std::endl;
         std::clog<<"\t <ef_construction>: int "<<std::endl;
         std::clog<<"\t <ef_search>: int,int,int,int...,int "<<std::endl;
         std::clog<<"\t <k>: number of neighbors "<<std::endl;
+        std::clog<<"\t --reprune: if present, reprune every node with HNSW heuristic"<<std::endl;
         return -1; 
     }
 
 	int space_ID = std::stoi(argv[1]);
 	std::string indexfilename(argv[2]);
+
+    bool reprune = false;
+    for (int i = 0; i < argc; ++i){
+        if (std::strcmp("--reprune",argv[i]) == 0){
+            reprune = true;
+        }
+    }
 
     std::vector<int> ef_searches;
 	std::stringstream ss(argv[5]);
@@ -87,6 +95,19 @@ int main(int argc, char **argv){
 	auto stop_f = std::chrono::high_resolution_clock::now();
 	auto duration_f = std::chrono::duration_cast<std::chrono::milliseconds>(stop_f - start_f);
     std::cout<<"Flash time: "<<duration_f.count()/1000.0<<" seconds."<<std::endl;
+
+    if (reprune){
+        std::cout<<"Repruning with HNSW heuristic..."<<std::endl;
+        auto start_reprune = std::chrono::high_resolution_clock::now();
+
+        for (int i = 0; i < index.size(); i++){
+            index.reprune(i);
+        }
+        
+        auto stop_reprune = std::chrono::high_resolution_clock::now();
+        auto duration_reprune = std::chrono::duration_cast<std::chrono::milliseconds>(stop_reprune - start_reprune);
+        std::clog<<"Repruning time: "<<duration_reprune.count()/1000.0<<" seconds."<<std::endl;
+    }
 
     if (reorder_ID == 1){
         std::clog<<"Using GORDER"<<std::endl;
@@ -158,6 +179,7 @@ int main(int argc, char **argv){
 
     for (int& ef_search: ef_searches){
         double mean_recall = 0;
+        index.UGLY_DISTANCE_COUNTER = 0;
 
         auto start_q = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < Nq; i++){
@@ -179,7 +201,7 @@ int main(int argc, char **argv){
         }
         auto stop_q = std::chrono::high_resolution_clock::now();
         auto duration_q = std::chrono::duration_cast<std::chrono::milliseconds>(stop_q - start_q);
-        std::cout<<mean_recall/Nq<<","<<(float)(duration_q.count())/Nq<<std::endl;
+        std::cout<<mean_recall/Nq<<","<<(float)(duration_q.count())/Nq<<","<<(float)(index.UGLY_DISTANCE_COUNTER)/Nq<<std::endl;
     }
 
     return 0;

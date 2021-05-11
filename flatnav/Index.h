@@ -35,6 +35,8 @@ public:
 	enum class GraphOrder {GORDER, IN_DEG, OUT_DEG, RCM, HUB_SORT, HUB_CLUSTER, DBG};
 	typedef std::pair< dist_t, label_t > dist_label_t;
 
+	int UGLY_DISTANCE_COUNTER;
+
 private:
 	typedef unsigned int node_id_t; // internal node numbering scheme
 	typedef std::pair< dist_t, node_id_t > dist_node_t;
@@ -101,6 +103,7 @@ private:
 		PriorityQueue candidates; // C in the paper
 
 		is_visited.clear();
+		UGLY_DISTANCE_COUNTER++;
 		dist_t dist = distance(query, nodeData(entry_node), distance_param);
 		dist_t max_dist = dist;
 
@@ -119,6 +122,7 @@ private:
 			for (int i = 0; i < M; i++){
 				if (!is_visited[d_node_links[i]]){ // if we haven't visited the node yet
 					is_visited.insert(d_node_links[i]);
+					UGLY_DISTANCE_COUNTER++;
 					dist = distance(query, nodeData(d_node_links[i]), distance_param);
 					// Include the node in the buffer if buffer isn't full or if node is closer than a node already in the buffer
 					if (neighbors.size() < buffer_size || dist < max_dist) {
@@ -136,28 +140,6 @@ private:
 		}
 		return neighbors;
 	}
-
-  void reprune(node_id_t node){
-    node_id_t* links = nodeLinks(node);
-    PriorityQueue neighbors;
-    for (int i = 0; i < M; i++){
-      if (links[i] != node){
-        dist_t dist = distance(nodeData(node), nodeData(links[i]), distance_param);
-        neighbors.emplace(dist, links[i]);
-        links[i] = node;
-      }
-    }
-    selectNeighbors(neighbors, M);
-    int i = 0;
-    while(neighbors.size() > 0){
-      node_id_t neighbor_node_id = neighbors.top().second;
-      links[i] = neighbor_node_id;
-      i++;
-      if (i > M){i = M;}
-      neighbors.pop();
-    }
-  }
-
 
 	void selectNeighbors(PriorityQueue& neighbors, const int M){
 		// selects neighbors from the PriorityQueue, according to HNSW heuristic
@@ -260,6 +242,7 @@ private:
 		node_id_t entry_node = 0;
 
 		for( node_id_t node = 0; node < cur_num_nodes; node += step_size){
+			UGLY_DISTANCE_COUNTER++;
 			dist_t dist = distance(query, nodeData(node), distance_param);
 			if (dist < min_dist){
 				min_dist = dist; 
@@ -515,6 +498,26 @@ public:
 		}
 	}
 
+	void reprune(node_id_t node){
+		node_id_t* links = nodeLinks(node);
+		PriorityQueue neighbors;
+		for (int i = 0; i < M; i++){
+			if (links[i] != node){
+				dist_t dist = distance(nodeData(node), nodeData(links[i]), distance_param);
+				neighbors.emplace(dist, links[i]);
+				links[i] = node;
+			}
+		}
+		selectNeighbors(neighbors, M);
+		int i = 0;
+		while(neighbors.size() > 0){
+			node_id_t neighbor_node_id = neighbors.top().second;
+			links[i] = neighbor_node_id;
+			i++;
+			if (i > M){i = M;}
+			neighbors.pop();
+		}
+	}
 
 
 	void reorder(GraphOrder algorithm){
