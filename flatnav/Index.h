@@ -175,6 +175,39 @@ private:
 		}
 	}
 
+	void selectNeighborsNoCheck(PriorityQueue& neighbors, const int M){
+
+		PriorityQueue candidates; 
+		std::vector<dist_node_t> saved_candidates; 
+		while(neighbors.size() > 0){
+			candidates.emplace(-neighbors.top().first, neighbors.top().second);
+			neighbors.pop();
+		}
+
+		while(candidates.size() > 0){
+			if (saved_candidates.size() >= M){ break; }
+			dist_node_t current_pair = candidates.top(); 
+			candidates.pop();
+
+			bool should_keep_candidate = true; 
+			for (const dist_node_t& second_pair : saved_candidates) {
+				dist_t cur_dist = distance(nodeData(second_pair.second), nodeData(current_pair.second), distance_param);
+				if (cur_dist < (-current_pair.first) ){
+					should_keep_candidate = false; 
+					break;
+				}
+			}
+			if (should_keep_candidate) {
+				saved_candidates.push_back(current_pair); // could do neighbors.emplace except we have to iterate through saved_candidates, and std::priority_queue doesn't support iteration
+			}
+		}
+		// implement my own priority queue, get rid of vector saved_candidates, add directly to neighborqueue earlier
+		for (const dist_node_t& current_pair : saved_candidates){
+			neighbors.emplace(-current_pair.first, current_pair.second);
+		}
+	}
+
+
 	void connectNeighbors(PriorityQueue& neighbors, node_id_t new_node_id){
 		// connects neighbors according to the HSNW heuristic
 		node_id_t* new_node_links = nodeLinks(new_node_id);
@@ -403,7 +436,7 @@ public:
 			neighbors.pop();
 		}
 		std::sort( results.begin(), results.end(), [](const dist_label_t& left, const dist_label_t& right)
-			{ return left.second < right.second; });
+			{ return left.first < right.first; });
 		return results;
 	}
 
@@ -508,7 +541,7 @@ public:
 				links[i] = node;
 			}
 		}
-		selectNeighbors(neighbors, M);
+		selectNeighborsNoCheck(neighbors, M);
 		int i = 0;
 		while(neighbors.size() > 0){
 			node_id_t neighbor_node_id = neighbors.top().second;
