@@ -61,9 +61,17 @@ int main(int argc, char **argv){
     for (int label = 0; label < N; label++){
     	float* q = data + dim*label; 
     	std::vector<std::pair<float,int> > result = index.search(q, k+1, ef_search);
-    	for (int i = 1; i < result.size(); i++){
-			std::cout<< label+1 <<" "<< result[i].second + 1 << std::endl;
-    	}
+        bool found = false;
+        for (int i = 0; i < result.size(); i++){
+            if (result[i].second != label){
+                std::cout<< label+1 <<" "<< result[i].second + 1 << std::endl;    
+            } else {
+                found = true;
+            }
+            if (!found && i + 2 == result.size()) {
+                break;
+            }
+        }
     }
 
     return 0;
