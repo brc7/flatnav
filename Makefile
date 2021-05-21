@@ -1,7 +1,7 @@
 # How to use 
 # To make all tools: make tools
 
-CXX = /usr/local/Cellar/gcc/10.2.0/bin/g++-10
+CXX = g++
 CFLAGS= -std=c++11 -Ofast -DHAVE_CXX0X -DNDEBUG -openmp -march=native -fpic -w -ffast-math -funroll-loops -ftree-vectorize -ftree-vectorizer-verbose=0 -g
 LDFLAGS= -L/usr/local/lib/ -lcnpy -lz
 
@@ -42,6 +42,15 @@ clean:
 	rm -f $(BINARIES); 
 
 .PHONY: clean targets binaries all 
+
+PYBIND_TARGET := ./python_bindings/flatnav.cpp
+PYTHON_INC_FLAGS := -I/usr/include/python3.6
+FLATNAV_SRC := ./flatnav
+
+python-bindings: 
+	$(CXX) $(CFLAGS) $(shell python3 -m pybind11 --includes) $(PYTHON_INC_FLAGS) -I./$(FLATNAV_SRC) --shared -fPIC $(PYBIND_TARGET) -o flatnav.so
+
+.PHONY: python-bindings
 
 # CFLAGS= -std=c++11 -Ofast -DHAVE_CXX0X -DNDEBUG -openmp -march=native -fpic -w -ffast-math -funroll-loops -ftree-vectorize -ftree-vectorizer-verbose=0 -g
 # INCLUDES= -I/usr/local/include # for cnpy include
