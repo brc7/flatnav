@@ -15,8 +15,12 @@ K = 100
 
 index = flatnav.Index(space="L2", dim = data.shape[1], N=data.shape[0], M=M)
 
-index.Add(data, ef_construction)
-# index.Reorder("gorder")
+# labels = np.array([i for i in range(data.shape[0])])
+# index.Add(data=data, ef_construction=ef_construction, labels=labels)
+
+index.Add(data=data, ef_construction=ef_construction, labels=None)
+
+index.Reorder("gorder")
 
 index.Save("mnist16.bin")
 
@@ -37,4 +41,9 @@ for query in range(queries.shape[0]):
 mean_recall /= queries.shape[0]
 
 print("Python Recall: ", mean_recall)
-print("Cpp Recall: ", flatnav.compute_recall(results, gtruths))
+print("Cpp Recall: ", flatnav.ComputeRecall(results, gtruths))
+
+index2 = flatnav.Index(space="L2", dim=queries.shape[1], save_loc="./mnist16.bin")
+
+results2 = index2.Search(queries, K, ef_search)
+print("Recall with Reloaded Index: ", flatnav.ComputeRecall(results2, gtruths))

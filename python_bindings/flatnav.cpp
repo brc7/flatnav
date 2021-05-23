@@ -33,25 +33,42 @@ public:
     index = new Index<dist_t, label_t>(space, _N, _M);
 	}
 
-  PyIndex(std::string spaceType,std::string filename) {
+  PyIndex(std::string spaceType, size_t _dim, std::string filename): dim(_dim) {
     getSpaceFromType(spaceType);
     index = new Index<dist_t, label_t>(space, filename);
   }
 
-  void Add(py::array_t<float, py::array::c_style | py::array::forcecast> dataset, int ef_construction) {
-    if (dataset.ndim() != 2 || dataset.shape(1) != dim) {
-      throw std::invalid_argument("Dataset has incorrect dimensions");
+  void Add(
+    py::array_t<float, py::array::c_style | py::array::forcecast> data, 
+    int ef_construction, 
+    py::object labels_obj = py::none()) {
+
+    if (data.ndim() != 2 || data.shape(1) != dim) {
+      throw std::invalid_argument("Data has incorrect dimensions");
     }
 
-    for (size_t n = 0; n < dataset.shape(0); n++) {
-      this->index->add((void*)dataset.data(n), added, ef_construction);  
-      added++;
+    if (labels_obj.is_none())  {
+      for (size_t n = 0; n < data.shape(0); n++) {
+        this->index->add((void*)data.data(n), added, ef_construction);  
+        added++;
+      }    
+    } else {  
+      py::array_t<label_t, py::array::c_style | py::array::forcecast> labels(labels_obj);
+      if (labels.ndim() != 1 || labels.shape(0) != data.shape(0)) {
+        throw std::invalid_argument("Labels have incorrect dimensions");
+      }
+
+      for (size_t n = 0; n < data.shape(0); n++) {
+        label_t l = *labels.data(n);
+        this->index->add((void*)data.data(n), l, ef_construction);  
+        added++;
+      }  
     }
   }
 
   py::array_t<label_t> Search(py::array_t<float, py::array::c_style | py::array::forcecast> queries, int K, int ef_search) {
     if (queries.ndim() != 2 || queries.shape(1) != dim) {
-      throw std::invalid_argument("Dataset has incorrect dimensions");
+      throw std::invalid_argument("Queries have incorrect dimensions");
     }
     size_t num_queries = queries.shape(0);
 
@@ -105,7 +122,7 @@ public:
 };
 
 template<typename label_t>
-double compute_recall(py::array_t<label_t> results, py::array_t<label_t> gtruths) {
+double ComputeRecall(py::array_t<label_t> results, py::array_t<label_t> gtruths) {
   double avg_recall = 0.0;
   for (size_t q = 0; q < results.shape(0); q++) {
     double recall = 0.0;
@@ -130,11 +147,11 @@ using PyIndexWithTypes = PyIndex<float, int>;
 PYBIND11_MODULE(flatnav, m) {
   py::class_<PyIndexWithTypes>(m, "Index")
       .def(py::init<std::string, size_t, int, int>(), py::arg("space"), py::arg("dim"), py::arg("N"), py::arg("M"))
-      .def(py::init<std::string, std::string>(), py::arg("space"), py::arg("save_loc"))
-      .def("Add", &PyIndexWithTypes::Add)
-      .def("Search", &PyIndexWithTypes::Search)
-      .def("Reorder", &PyIndexWithTypes::Reorder)
-      .def("Save", &PyIndexWithTypes::Save);
+      .def(py::init<std::string, size_t, std::string>(), py::arg("space"), py::arg("dim"), py::arg("save_loc"))
+      .def("Add", &PyIndexWithTypes::Add, py::arg("data"), py::arg("ef_construction"), py::arg("labels")=py::none())
+      .def("Search", &PyIndexWithTypes::Search, py::arg("queries"), py::arg("K"), py::arg("ef_search"))
+      .def("Reorder", &PyIndexWithTypes::Reorder, py::arg("alg"))
+      .def("Save", &PyIndexWithTypes::Save, py::arg("filename"));
 
-  m.def("compute_recall", &compute_recall<int>);
+  m.def("ComputeRecall", &ComputeRecall<int>, py::arg("results"), py::arg("gtruths"));
 }
