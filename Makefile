@@ -43,12 +43,13 @@ clean:
 
 .PHONY: clean targets binaries all 
 
-PYBIND_TARGET := ./python_bindings/flatnav.cpp
+PYBIND_SRC := ./python_bindings/flatnav.cpp
+PYBINd_TARGET := ./build/flatnav.so
 PYTHON_INC_FLAGS := -I/usr/include/python3.6
 FLATNAV_SRC := ./flatnav
 
 python-bindings: 
-	$(CXX) $(CFLAGS) $(shell python3 -m pybind11 --includes) $(PYTHON_INC_FLAGS) -I./$(FLATNAV_SRC) --shared -fPIC $(PYBIND_TARGET) -o flatnav.so
+	$(CXX) $(CFLAGS) $(shell python3 -m pybind11 --includes) $(PYTHON_INC_FLAGS) -I./$(FLATNAV_SRC) --shared -fPIC $(PYBIND_SRC) -o $(PYBINd_TARGET)
 
 .PHONY: python-bindings
 

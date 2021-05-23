@@ -1,6 +1,7 @@
 ## Python Binding Instructions
 1. `$ make python-bindings`
-2. `$ ./test.py
+2. `$ export PYTHONPATH=$(pwd)/build:$PYTHONPATH`
+2. `$ ./python_bindings/test.py`
 
 ### Note on python bindings: 
 The python bindings require pybind11 to compile. This can be installed with `pip3 install pybind11`. The command `python3 -m pybind11 --includes` which is included in the Makefile gets the correct include flags for the `pybind11/pybind11.h` header file, as well as the include flags for the `Python.h` header file. If the `Python.h` file is not located at the specified include paths, then another include path may need to be added (specified by the PYTHON_INC_FLAGS variable in the Makefile), or it may need to be installed with `$ sudo apt-get install python3-dev`. 
