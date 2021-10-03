@@ -3,7 +3,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.0 FATAL_ERROR)
 PROJECT( FlatNav CXX )
 
 SET( CMAKE_CXX_STANDARD 11 )
-SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Ofast -DHAVE_CXX0X -DNDEBUG -openmp -march=native -fpic -w -ffast-math -funroll-loops -ftree-vectorize -ftree-vectorizer-verbose=0 -g" )
+SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Ofast -DHAVE_CXX0X -DNDEBUG -openmp -march=native -fpic -w -ffast-math -funroll-loops -ftree-vectorize -g" )
 
 INCLUDE( ExternalProject )
 
@@ -74,7 +74,7 @@ ADD_DEPENDENCIES( FLAT_NAV_LIB CNPY )
 TARGET_LINK_LIBRARIES( FLAT_NAV_LIB ${CNPY_LIB} )
 set_target_properties( FLAT_NAV_LIB PROPERTIES LINKER_LANGUAGE CXX)
 
-foreach(CONSTRUCT_EXEC construct query graphdump query_sparse reorder graphstats knngraphdump)
+foreach(CONSTRUCT_EXEC construct query graphdump query_sparse reorder graphstats )
   ADD_EXECUTABLE( ${CONSTRUCT_EXEC} ${PROJECT_SOURCE_DIR}/tools/${CONSTRUCT_EXEC}.cpp )
   ADD_DEPENDENCIES( ${CONSTRUCT_EXEC} FLAT_NAV_LIB )
   TARGET_LINK_LIBRARIES( 
