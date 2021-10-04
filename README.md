@@ -1,3 +1,14 @@
+## Python Binding Instructions
+1. `$ mkdir build`
+2. `$ make python-bindings`
+3. `$ export PYTHONPATH=$(pwd)/build:$PYTHONPATH`
+4. `$ python3 python_bindings/test.py`
+
+### Note on python bindings: 
+The python bindings require pybind11 to compile. This can be installed with `pip3 install pybind11`. The command `python3 -m pybind11 --includes` which is included in the Makefile gets the correct include flags for the `pybind11/pybind11.h` header file, as well as the include flags for the `Python.h` header file. If the `Python.h` file is not located at the specified include paths, then another include path may need to be added (specified by the PYTHON_INC_FLAGS variable in the Makefile), or it may need to be installed with `$ sudo apt-get install python3-dev`. 
+
+Note that all of these files/modules are installed and located in the correct locations on terminator5 and the python bindings can be compiled without modifcation to the Makefile there. 
+
 ## Instructions with CMake 
 
 1. `$ cd flatnav`
