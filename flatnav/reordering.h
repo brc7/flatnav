@@ -17,6 +17,34 @@
 // look at P[i]
 
 
+/* Notes:
+
+Gorder Algorithm: 
+
+insert all v into Q each with priority 0
+select a start node into P
+
+for i = 1 to N:
+    ve = P[i-1] # new node in window
+    for each node u in out-edges of ve: 
+        if u in Q, increment priority of u
+    for each node u in in-edges of ve: 
+        if u in Q, increment priority of u
+        for each node v in out-edges of u:
+            if v in Q, increment priority of v
+    if i > w+1: 
+        // remove the tailing node
+        vb = P[i - w - 1]
+        for each node u in out-edges of vb: 
+            if u in Q, decrement priority of u
+        for each node u in in-edges of fb:
+            if u in Q, decrement priority of u
+            for each node v in out-edges of u:
+                if v in Q, decrement priority of v
+    vmax = Q.pop()
+    P[i] = vmax
+    i++
+*/
 
 template <typename node_id_t>
 std::vector<node_id_t> g_order(std::vector< std::vector<node_id_t> > &outdegree_table, const int w){
@@ -86,6 +114,7 @@ std::vector<node_id_t> g_order(std::vector< std::vector<node_id_t> > &outdegree_
     return Pinv;
 }
 
+
 template <typename node_id_t>
 std::vector<node_id_t> indegree_order(std::vector< std::vector<node_id_t> > &outdegree_table){
 
@@ -110,6 +139,7 @@ std::vector<node_id_t> indegree_order(std::vector< std::vector<node_id_t> > &out
 
 	return P;
 }
+
 
 template <typename node_id_t>
 std::vector<node_id_t> outdegree_order(std::vector< std::vector<node_id_t> > &outdegree_table){
@@ -179,6 +209,7 @@ std::vector<node_id_t> hubsort_order(std::vector< std::vector<node_id_t> > &outd
     return Pinv;
 }
 
+
 template <typename node_id_t>
 std::vector<node_id_t> dbg_order(std::vector< std::vector<node_id_t> > &outdegree_table, const int w){
 
@@ -228,6 +259,7 @@ std::vector<node_id_t> dbg_order(std::vector< std::vector<node_id_t> > &outdegre
 	}
 	return Pinv;
 }
+
 
 template <typename node_id_t>
 std::vector<node_id_t> rcm_order(std::vector< std::vector<node_id_t> > &outdegree_table){
@@ -306,6 +338,7 @@ std::vector<node_id_t> rcm_order(std::vector< std::vector<node_id_t> > &outdegre
     return Pinv;
 }
 
+
 template <typename node_id_t> 
 std::vector<node_id_t> hubcluster_order(std::vector< std::vector<node_id_t> > &outdegree_table){
 
@@ -349,31 +382,3 @@ std::vector<node_id_t> hubcluster_order(std::vector< std::vector<node_id_t> > &o
 }
 
 
-/* Notes:
-
-Gorder Algorithm: 
-
-insert all v into Q each with priority 0
-select a start node into P
-
-for i = 1 to N:
-    ve = P[i-1] # new node in window
-    for each node u in out-edges of ve: 
-        if u in Q, increment priority of u
-    for each node u in in-edges of ve: 
-        if u in Q, increment priority of u
-        for each node v in out-edges of u:
-            if v in Q, increment priority of v
-    if i > w+1: 
-        // remove the tailing node
-        vb = P[i - w - 1]
-        for each node u in out-edges of vb: 
-            if u in Q, decrement priority of u
-        for each node u in in-edges of fb:
-            if u in Q, decrement priority of u
-            for each node v in out-edges of u:
-                if v in Q, decrement priority of v
-    vmax = Q.pop()
-    P[i] = vmax
-    i++
-*/
