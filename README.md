@@ -1,5 +1,5 @@
 ## Python Binding Instructions
-1. `$ mkdir build`
+1. `$ cd python_bindings`
 2. `$ make python-bindings`
 3. `$ export PYTHONPATH=$(pwd)/build:$PYTHONPATH`
 4. `$ python3 python_bindings/test.py`
@@ -9,19 +9,51 @@ The python bindings require pybind11 to compile. This can be installed with `pip
 
 Note that all of these files/modules are installed and located in the correct locations on terminator5 and the python bindings can be compiled without modifcation to the Makefile there. 
 
+If you encounter the following error:
+
+`ld: can't open output file for writing: ../build/flatnav.so, errno=2 for architecture x86_64`
+
+The reason is that you forgot to make the build directory. Run `mkdir build` in the top-level flatnav directory and re-build the Python bindings.
+
+### Special Instructions for MacOS
+
+On MacOS, the default installation directory (`/usr/lib`) is where the global, system Python libraries are located, but this is often not where we want to perform the installation. If the user has installed their own (non-system) version of Python via Homebrew or a similar tool, the actual Python libraries will be located somewhere else. This will result in many errors similar to the following:
+
+```
+Undefined symbols for architecture x86_64:
+  "_PyBaseObject_Type...
+```
+
+This happens because homebrew does not install into the global , and we need to explicitly link the libpython object files on MacOS. To fix it, you will need the location of `libpython*.dylib` (where `*` stands in for the Python version). To find them, run 
+
+`sudo find / -iname "libpython*"`
+
+And pick the one corresponding to the version of Python you use. Once you've located the library, add the following to the Makefile:
+
+`PYTHON_LINK_FLAGS := -L /path/to/directory/containing/dylib/ -lpythonX.Y`
+
+For example, I installed Python 3.9 using Homebrew and found:
+
+`/usr/local/Cellar/python@3.9/3.9.4/Frameworks/Python.framework/Versions/3.9/lib/libpython3.9.dylib`
+
+This means that my link flags are:
+
+`PYTHON_LINK_FLAGS := -L /usr/local/Cellar/python@3.9/3.9.4/Frameworks/Python.framework/Versions/3.9/lib/python3.9/config-3.9-darwin/ -lpython3.9`
+
+If you installed Python in some other place (or if you use the system Python), you will probably have a different location for `libpython.dylib`.
+
 ## Instructions with CMake 
 
 1. `$ cd flatnav`
 2. `$ mkdir bin && cd bin`
-3. `$ cmake ..`
+3. `$ cmake -G "Unix Makefiles"`
 4. `$ make` 
 
-This will generate an executable called `construct` and an executable called `query`.
-
+This will generate an executable called `construct` and an executable called `query` (does not currently build the python libraries).
 
 ### List of things to do
 
-1. Fix the build system
+1. Fix the build system (again - integrate Python libraries into cmake with MacOS fix)
 2. Fix off-by-one bug in HashBasedBooleanSet
 3. The node layout is currently [data] [links] [label] (all flat). There is no reason to have the labels be in the same data space. Does this improve cache performance?
 4. Make the distance function pointer in SpaceInterface a template like SpaceInterface<dist_t, dimensions> so that dim is known at compile-time.
@@ -34,6 +66,8 @@ This would permit us to do more optimizations and also we don't have to pass a s
 10. Consider running beam search candidates in parallel on multi-core machines
 11. Carefully review all templates to be sure they're necessary. Do we really need a templated label type? (A: Possibly - people may use strings as labels, or if you wanted to use this for kNN classifications you could use class names as labels. The label is any non-vector data associated with each point)
 12. Python bindings
+13. Automate tests
+
 
 Note: before doing (4) and (5) check disassembly to see if the compiler is not already doing optimizations.
 
