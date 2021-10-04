@@ -6,7 +6,7 @@
 #include <fstream>
 #include <utility>
 
-#include "flatnav/Index.h"
+#include "../flatnav/Index.h"
 #include <algorithm>
 #include <string>
 

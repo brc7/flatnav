@@ -137,6 +137,28 @@ private:
 		return neighbors;
 	}
 
+  void reprune(node_id_t node){
+    node_id_t* links = nodeLinks(node);
+    PriorityQueue neighbors;
+    for (int i = 0; i < M; i++){
+      if (links[i] != node){
+        dist_t dist = distance(nodeData(node), nodeData(links[i]), distance_param);
+        neighbors.emplace(dist, links[i]);
+        links[i] = node;
+      }
+    }
+    selectNeighbors(neighbors, M);
+    int i = 0;
+    while(neighbors.size() > 0){
+      node_id_t neighbor_node_id = neighbors.top().second;
+      links[i] = neighbor_node_id;
+      i++;
+      if (i > M){i = M;}
+      neighbors.pop();
+    }
+  }
+
+
 	void selectNeighbors(PriorityQueue& neighbors, const int M){
 		// selects neighbors from the PriorityQueue, according to HNSW heuristic
 		if (neighbors.size() < M) { return; }
