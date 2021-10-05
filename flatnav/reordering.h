@@ -382,3 +382,106 @@ std::vector<node_id_t> hubcluster_order(std::vector< std::vector<node_id_t> > &o
 }
 
 
+/* Notes:
+
+Corder Algorithm: (Cache Order)
+
+This does gorder, but with an extra term in the objective to 
+represent the inclusion-exclusion principle needed to get the 
+cache score.
+
+insert all v into Q each with priority 0
+select a start node into P
+
+for i = 1 to N:
+    ve = P[i-1] # new node in window
+    for each node u in out-edges of ve: 
+        if u in Q, increment priority of u
+    for each node u in in-edges of ve: 
+        if u in Q, increment priority of u
+        for each node v in out-edges of u:
+            if v in Q, increment priority of v
+    if i > w+1: 
+        // remove the tailing node
+        vb = P[i - w - 1]
+        for each node u in out-edges of vb: 
+            if u in Q, decrement priority of u
+        for each node u in in-edges of fb:
+            if u in Q, decrement priority of u
+            for each node v in out-edges of u:
+                if v in Q, decrement priority of v
+    vmax = Q.pop()
+    P[i] = vmax
+    i++
+*/
+
+
+// TODO: Implement bc_order (currently this is just a clone of gorder)
+template <typename node_id_t>
+std::vector<node_id_t> bc_order(std::vector< std::vector<node_id_t> > &outdegree_table, const int w){
+
+    int cur_num_nodes = outdegree_table.size();
+
+    // create table of in-degrees
+    std::vector< std::vector<node_id_t> > indegree_table(cur_num_nodes);
+    for(node_id_t node = 0; node < cur_num_nodes; node++){
+        for (node_id_t& edge : outdegree_table[node]){
+            indegree_table[edge].push_back(node);
+        }
+    }
+
+    GorderPriorityQueue<node_id_t> Q(cur_num_nodes);
+    std::vector<node_id_t> P(cur_num_nodes, 0);
+    
+    node_id_t seed_node = 0;
+    Q.increment(seed_node);
+    P[0] = Q.pop();
+
+    // for i = 1 to N: 
+    for (int i = 1; i < cur_num_nodes; i++){
+        node_id_t v_e = P[i-1];
+        // ve = newest node in window
+        // for each node u in out-edges of ve:
+        for (node_id_t& u : outdegree_table[v_e]){
+            Q.increment(u);
+        }
+        // for each node u in in-edges of v_e:
+        for (node_id_t& u : indegree_table[v_e]){
+            // if u in Q, increment priority of u
+            Q.increment(u);
+            // for each node v in out-edges of u:
+            for (node_id_t& v : outdegree_table[u]){
+                Q.increment(v);
+            }
+        }
+
+        if (i > w+1){
+            node_id_t v_b = P[i-w-1];
+            // for each node u in out-edges of vb:
+            for (node_id_t& u : outdegree_table[v_b]){
+                Q.decrement(u);
+            }
+            
+            // for each node u in in-edges of v_b
+            for (node_id_t& u : indegree_table[v_b]){
+                // if u in Q, increment priority of u
+                // it honestly doesn't seem to matter whether this particular operation is an increment or a decrement
+                // in my original code, it was "increment" (which is technically wrong) but the performance is basically the same
+                Q.decrement(u); 
+                // for each node v in out-edges of u: 
+                for (node_id_t& v : outdegree_table[u]){
+                    Q.decrement(v);
+                }
+            }
+        }
+        P[i] = Q.pop();
+    }
+
+    std::vector<node_id_t> Pinv(cur_num_nodes, 0);
+    for (int n = 0; n < cur_num_nodes; n++){
+        Pinv[P[n]] = n;
+    }
+    // now we have a mapping Pinv[i] -> new label of node i
+    return Pinv;
+}
+
