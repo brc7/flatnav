@@ -148,6 +148,15 @@ int main(int argc, char **argv){
         auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
         std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
     }
+    else if (reorder_ID == 8){
+        std::clog<<"Using BCORDER"<<std::endl;
+        std::clog << "Reordering: "<< std::endl;
+        auto start_r = std::chrono::high_resolution_clock::now();
+        index.reorder(Index<float, int>::GraphOrder::BCORDER);
+        auto stop_r = std::chrono::high_resolution_clock::now();
+        auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
+        std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
+    }
     else{
         std::clog<<"No reordering"<<std::endl;
     }
