@@ -415,8 +415,6 @@ for i = 1 to N:
     i++
 */
 
-
-// TODO: Implement bc_order (currently this is just a clone of gorder)
 template <typename node_id_t>
 std::vector<node_id_t> bc_order(std::vector< std::vector<node_id_t> > &outdegree_table, const int w){
 
@@ -454,6 +452,20 @@ std::vector<node_id_t> bc_order(std::vector< std::vector<node_id_t> > &outdegree
                 Q.increment(v);
             }
         }
+        // kill double-counted shared parents
+        for (node_id_t& u : indegree_table[v_e]){
+            for (node_id_t& v : indegree_table[v_e]){
+
+                for (node_id_t& u_child : outdegree_table[u]){
+                    for (node_id_t& v_child : outdegree_table[v]){
+                        if (u_child == v_child){
+                            // double parent! Need to discount, to avoid double-counting
+                            Q.decrement(u_child);
+                        }
+                    }
+                }
+            }
+        }
 
         if (i > w+1){
             node_id_t v_b = P[i-w-1];
@@ -473,6 +485,22 @@ std::vector<node_id_t> bc_order(std::vector< std::vector<node_id_t> > &outdegree
                     Q.decrement(v);
                 }
             }
+
+            // un-kill double-counted shared parents
+            for (node_id_t& u : indegree_table[v_b]){
+                for (node_id_t& v : indegree_table[v_b]){
+
+                    for (node_id_t& u_child : outdegree_table[u]){
+                        for (node_id_t& v_child : outdegree_table[v]){
+                            if (u_child == v_child){
+                                // double parent! Need to discount, to avoid double-counting
+                                Q.increment(u_child);
+                            }
+                        }
+                    }
+                }
+            }
+
         }
         P[i] = Q.pop();
     }
