@@ -2,6 +2,8 @@
 
 #include <vector>
 #include "ExplicitSet.h"
+#include "WeightedPriorityQueue.h"
+#include "GorderPriorityQueue.h"
 #include <algorithm>
 #include <queue>
 #include <utility>
