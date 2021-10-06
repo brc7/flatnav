@@ -32,7 +32,7 @@ public:
 	// dist_t is the type of the underlying metric space (i.e. for uint8_t images, dist_t is uint8_t)
 	// label_t is a fixed-size 
 	// both dist_t and label_t must be POD types - we do not support custom classes here
-	enum class GraphOrder {GORDER, IN_DEG, OUT_DEG, RCM, HUB_SORT, HUB_CLUSTER, DBG};
+	enum class GraphOrder {GORDER, IN_DEG, OUT_DEG, RCM, HUB_SORT, HUB_CLUSTER, DBG, BCORDER};
 	typedef std::pair< dist_t, label_t > dist_label_t;
 
 private:
@@ -528,7 +528,7 @@ public:
 			}
 		}
 		std::vector<node_id_t> P;
-		// List of algorithms (so far): GORDER, IN_DEG, OUT_DEG, RCM, HUB_SORT, HUB_CLUSTER, DBG
+		// List of algorithms (so far): GORDER, IN_DEG, OUT_DEG, RCM, HUB_SORT, HUB_CLUSTER, DBG, BCORDER
 		switch(algorithm){
 			case GraphOrder::GORDER      : P = g_order<node_id_t>(outdegree_table, 5); break;
 			case GraphOrder::IN_DEG      : P = indegree_order<node_id_t>(outdegree_table); break;
@@ -537,6 +537,7 @@ public:
 			case GraphOrder::HUB_SORT    : P = hubsort_order<node_id_t>(outdegree_table); break;
 			case GraphOrder::HUB_CLUSTER : P = hubcluster_order<node_id_t>(outdegree_table); break;
 			case GraphOrder::DBG         : P = dbg_order<node_id_t>(outdegree_table, 8); break;
+			case GraphOrder::BCORDER     : P = bc_order<node_id_t>(outdegree_table, 5); break;
 		}
 		relabel(P);
 	}
