@@ -351,6 +351,93 @@ std::vector<node_id_t> hubcluster_order(std::vector< std::vector<node_id_t> > &o
 }
 
 
+template <typename node_id_t>
+std::vector<node_id_t> weighted_g_order(std::vector< std::vector<node_id_t> > &outdegree_table,
+    std::vector< std::vector<float> > &outdegree_weights, const int w){
+    // outdegree_weights is a table exactly like outdegree_table, except that 
+    // outdegree_weights[i][j] contains the weight of the edge between node i and node outdegree_table[i][j]
+
+    int cur_num_nodes = outdegree_table.size();
+
+    // create table of in-degrees
+    std::vector< std::vector<node_id_t> > indegree_table(cur_num_nodes);
+    std::vector< std::vector<float> > indegree_weights(cur_num_nodes);
+    for(node_id_t node = 0; node < cur_num_nodes; node++){
+        for (node_id_t& edge : outdegree_table[node]){
+            indegree_table[edge].push_back(node);
+        }
+        for (float& weight : outdegree_weights[node]){
+            indegree_weights[edge].push_back(weight);
+        }
+    }
+
+    WeightedPriorityQueue<node_id_t> Q(cur_num_nodes);
+    std::vector<node_id_t> P(cur_num_nodes, 0);
+    
+    node_id_t seed_node = 0;
+    Q.increment(seed_node);
+    P[0] = Q.pop();
+
+    // for i = 1 to N:
+    for (int i = 1; i < cur_num_nodes; i++){
+        node_id_t v_e = P[i-1];
+        // ve = newest node in window
+        // for each node u in out-edges of ve:
+        for (int i_u = 0; i_u < outdegree_table[v_e].size(); i_u++){
+            node_id_t u = outdegree_table[v_e][i_u];
+            float weight_u = outdegree_weights[v_e][i_u];
+            Q.increment(u, weight_u);
+        }
+        for (int i_u = 0; i_u < indegree_table[v_e].size(); i_u++){
+            // if u in Q, increment priority of u
+            node_id_t u = outdegree_table[v_e][i_u];
+            float weight_u = outdegree_weights[v_e][i_u];
+            Q.increment(u, weight_u);
+            // for each node v in out-edges of u:
+            for (int i_v = 0; i_v < outdegree_table[u].size(); i_v++){
+                // oh the indices, the humanity!
+                node_id_t v = outdegree_table[u][i_v];
+                float weight_v = outdegree_weights[u][i_v];
+                Q.increment(v, weight_v);
+            }
+        }
+
+        if (i > w+1){
+            node_id_t v_b = P[i-w-1];
+            // for each node u in out-edges of vb:
+            for (int i_u = 0; i_u < outdegree_table[v_b].size(); i_u++){
+                node_id_t u = outdegree_table[v_b][i_u];
+                float weight_u = outdegree_weights[v_b][i_u];
+                Q.decrement(u, weight_u);
+            }
+            // for each node u in in-edges of v_b
+            for (int i_u = 0; i_u < indegree_table[v_b].size(); i_u++){
+                // if u in Q, decrement priority of u
+                node_id_t u = outdegree_table[v_b][i_u];
+                float weight_u = outdegree_weights[v_b][i_u];
+                Q.decrement(u, weight_u);
+                for (int i_v = 0; i_v < outdegree_table[u].size(); i_v++){
+                    // for each node v in out-edges of u:
+                    // oh the indices, the humanity!
+                    node_id_t v = outdegree_table[u][i_v];
+                    float weight_v = outdegree_weights[u][i_v];
+                    Q.decrement(v, weight_v);
+                }
+            }
+        }
+        P[i] = Q.pop();
+    }
+
+    std::vector<node_id_t> Pinv(cur_num_nodes, 0);
+    for (int n = 0; n < cur_num_nodes; n++){
+        Pinv[P[n]] = n;
+    }
+    // now we have a mapping Pinv[i] -> new label of node i
+    return Pinv;
+}
+
+
+
 /* Notes:
 
 Gorder Algorithm: 
