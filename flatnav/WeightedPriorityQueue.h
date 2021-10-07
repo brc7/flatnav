@@ -129,7 +129,7 @@ class WeightedPriorityQueue{
 
 	WeightedPriorityQueue(size_t _N){
 		for (int i = 0; i < _N; i++){
-			linked_list.push_back({i, 0, -1, -1});
+			linked_list.push_back({(node_id_t)(i), 0, -1, -1});
 			index_table[i] = i;
 		}
 		init_list();

@@ -540,4 +540,84 @@ public:
 		}
 		relabel(P);
 	}
+
+	void profile_reorder(void* queries, int n_queries,
+		int ef_search, int w){
+		// construct the weighted graph
+		std::vector< std::vector<node_id_t> > outdegree_table(cur_num_nodes);
+		std::vector< std::vector<float> > outdegree_weights(cur_num_nodes);
+		for (node_id_t node = 0; node < cur_num_nodes; node++){
+			node_id_t* links = nodeLinks(node);
+			for (int i = 0; i < M; i++){
+				if (links[i] != node){
+					outdegree_table[node].push_back(links[i]);
+					outdegree_weights[node].push_back(1.0);
+				}
+			}
+		}
+		for (int i = 0; i < n_queries; i++){
+			char* q = (char*)(queries) + i*(data_size_bytes);
+			profile_search(q, ef_search, outdegree_table, outdegree_weights);
+		}
+		std::vector<node_id_t> P = weighted_g_order<node_id_t>(outdegree_table, outdegree_weights, w);
+		// std::vector<node_id_t> P = g_order<node_id_t>(outdegree_table, w);
+		relabel(P);
+	}
+
+
+	void profile_search(const void* query, int ef_search,
+		std::vector< std::vector<node_id_t> > &outdegree_table,
+		std::vector< std::vector<float> > &outdegree_weights,
+		int n_initializations = 100){
+		node_id_t entry_node = searchInitialization(query, n_initializations);
+		// this is a pasted-in profiled version of beamSearch
+		int buffer_size = ef_search;
+		// returns an iterable list of node_id_t's, sorted by distance (ascending)
+		PriorityQueue neighbors; // W in the paper
+		PriorityQueue candidates; // C in the paper
+
+		is_visited.clear();
+		dist_t dist = distance(query, nodeData(entry_node), distance_param);
+		dist_t max_dist = dist;
+
+		candidates.emplace(-dist, entry_node);
+		neighbors.emplace(dist, entry_node);
+		is_visited.insert(entry_node);
+
+		while (!candidates.empty()) {
+			// get nearest element from candidates
+			dist_node_t d_node = candidates.top();
+			if ((-d_node.first) > max_dist){
+				break;
+			}
+			candidates.pop();
+			node_id_t* d_node_links = nodeLinks(d_node.second);
+			for (int i = 0; i < M; i++){
+				if (!is_visited[d_node_links[i]]){ // if we haven't visited the node yet
+					is_visited.insert(d_node_links[i]);
+					dist = distance(query, nodeData(d_node_links[i]), distance_param);
+					// we have done the traversal d_node.second -> d_node_links[i]
+					// so we have to increment the corresponding weight
+					for (int outdegree_index = 0; outdegree_index < outdegree_table[d_node.second].size(); outdegree_index++){
+						if (outdegree_table[d_node.second][outdegree_index] == d_node_links[i]){
+							outdegree_weights[d_node.second][outdegree_index] += 1;
+						}
+					}
+					// Include the node in the buffer if buffer isn't full or if node is closer than a node already in the buffer
+					if (neighbors.size() < buffer_size || dist < max_dist) {
+						candidates.emplace(-dist, d_node_links[i]);
+						neighbors.emplace(dist, d_node_links[i]);
+						if (neighbors.size() > buffer_size){
+							neighbors.pop();
+						}
+						if (!neighbors.empty()){
+							max_dist = neighbors.top().first;
+						}
+					}
+				}
+			}
+		}
+	}
+
+
 };

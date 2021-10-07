@@ -358,15 +358,14 @@ std::vector<node_id_t> weighted_g_order(std::vector< std::vector<node_id_t> > &o
     // outdegree_weights[i][j] contains the weight of the edge between node i and node outdegree_table[i][j]
 
     int cur_num_nodes = outdegree_table.size();
-
     // create table of in-degrees
     std::vector< std::vector<node_id_t> > indegree_table(cur_num_nodes);
     std::vector< std::vector<float> > indegree_weights(cur_num_nodes);
     for(node_id_t node = 0; node < cur_num_nodes; node++){
-        for (node_id_t& edge : outdegree_table[node]){
+        for (int i = 0; i < outdegree_table[node].size(); i++){
+            node_id_t edge = outdegree_table[node][i];
+            float weight = outdegree_weights[node][i];
             indegree_table[edge].push_back(node);
-        }
-        for (float& weight : outdegree_weights[node]){
             indegree_weights[edge].push_back(weight);
         }
     }
@@ -375,11 +374,12 @@ std::vector<node_id_t> weighted_g_order(std::vector< std::vector<node_id_t> > &o
     std::vector<node_id_t> P(cur_num_nodes, 0);
     
     node_id_t seed_node = 0;
-    Q.increment(seed_node);
+    Q.increment(seed_node,1.0);
     P[0] = Q.pop();
 
     // for i = 1 to N:
     for (int i = 1; i < cur_num_nodes; i++){
+    	// if (i%1000==0){std::cout<<i<<"/"<<cur_num_nodes<<std::endl;}
         node_id_t v_e = P[i-1];
         // ve = newest node in window
         // for each node u in out-edges of ve:
@@ -390,8 +390,8 @@ std::vector<node_id_t> weighted_g_order(std::vector< std::vector<node_id_t> > &o
         }
         for (int i_u = 0; i_u < indegree_table[v_e].size(); i_u++){
             // if u in Q, increment priority of u
-            node_id_t u = outdegree_table[v_e][i_u];
-            float weight_u = outdegree_weights[v_e][i_u];
+            node_id_t u = indegree_table[v_e][i_u];
+            float weight_u = indegree_weights[v_e][i_u];
             Q.increment(u, weight_u);
             // for each node v in out-edges of u:
             for (int i_v = 0; i_v < outdegree_table[u].size(); i_v++){
@@ -413,8 +413,8 @@ std::vector<node_id_t> weighted_g_order(std::vector< std::vector<node_id_t> > &o
             // for each node u in in-edges of v_b
             for (int i_u = 0; i_u < indegree_table[v_b].size(); i_u++){
                 // if u in Q, decrement priority of u
-                node_id_t u = outdegree_table[v_b][i_u];
-                float weight_u = outdegree_weights[v_b][i_u];
+                node_id_t u = indegree_table[v_b][i_u];
+                float weight_u = indegree_weights[v_b][i_u];
                 Q.decrement(u, weight_u);
                 for (int i_v = 0; i_v < outdegree_table[u].size(); i_v++){
                     // for each node v in out-edges of u:
