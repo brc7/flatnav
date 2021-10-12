@@ -602,3 +602,87 @@ std::vector<node_id_t> bc_order(std::vector< std::vector<node_id_t> > &outdegree
     return Pinv;
 }
 
+
+template <typename node_id_t>
+std::vector<node_id_t> weighted_rcm_order(std::vector< std::vector<node_id_t> > &outdegree_table,
+    std::vector< std::vector<float> > &outdegree_weights){
+
+    int cur_num_nodes = outdegree_table.size();
+    std::vector< std::pair<node_id_t, float> > sorted_nodes;
+
+    std::vector<float> weighted_degrees(cur_num_nodes,0.0);
+
+    // start with the nodes having largest weighted out-degree
+    for (node_id_t node = 0; node < cur_num_nodes; node++){
+        for (float& weight : outdegree_weights[node]){
+            weighted_degrees[node] += weight;
+        }
+    }
+
+    for (node_id_t node = 0; node < cur_num_nodes; node++){
+        float deg = weighted_degrees[node];
+        sorted_nodes.push_back({node, deg});
+    }
+
+    std::sort(sorted_nodes.begin(), sorted_nodes.end(),
+        [](const std::pair<node_id_t,float> &a, const std::pair<node_id_t,float> &b){return a.second > b.second; });
+
+    std::vector<node_id_t> P;
+    ExplicitSet is_listed = ExplicitSet(cur_num_nodes);
+    is_listed.clear();
+
+    for (int i = 0; i < sorted_nodes.size(); i++){
+        node_id_t node = sorted_nodes[i].first; 
+        std::queue<node_id_t> Q; 
+
+        if (!is_listed[node]){
+            // add node to permutation
+            P.push_back(node); 
+            is_listed.insert(node);
+
+            // get list of neighbors
+            std::vector< std::pair<node_id_t, float> > neighbors; 
+            for (auto& edge : outdegree_table[node]){
+                neighbors.push_back( { edge, weighted_degrees[edge] } );
+            }
+
+            // sort neighbors by degree (max weighted degree first)
+            std::sort(neighbors.begin(), neighbors.end(), 
+                [](const std::pair<node_id_t,float>&a, const std::pair<node_id_t,float>&b) { return a.second > b.second; });
+
+            // add neighbors to queue
+            for (int j = 0; j < neighbors.size(); j++){
+                Q.push(neighbors[j].first);
+            }
+
+            while (Q.size() > 0){
+                // exhause all the neighbors
+                node_id_t candidate = Q.front();
+                Q.pop(); 
+                if (!is_listed[candidate]){
+                    P.push_back(candidate);
+                    is_listed.insert(candidate);
+
+                    // get list of neighbors of candidate
+                    std::vector< std::pair<node_id_t,float> > candidate_neighbors; 
+                    for(auto& edge: outdegree_table[candidate]){
+                        candidate_neighbors.push_back( {edge, weighted_degrees[edge]} );
+                    }
+                    // sort neighbors by degree (max weighted degree first)
+                    std::sort(candidate_neighbors.begin(), candidate_neighbors.end(),
+                        [](const std::pair<node_id_t,float>&a, const std::pair<node_id_t,float>&b){ return a.second > b.second; });
+                    // add neighbors to queue
+                    for (int j = 0; j < candidate_neighbors.size(); j++){
+                        Q.push(candidate_neighbors[j].first);
+                    }
+                }
+            }
+        }
+    }
+
+    std::vector<node_id_t> Pinv(cur_num_nodes, 0);
+    for (int n = 0; n < cur_num_nodes; n++){
+        Pinv[P[n]] = n;
+    }
+    return Pinv;
+}

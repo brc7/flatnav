@@ -33,6 +33,7 @@ public:
 	// label_t is a fixed-size 
 	// both dist_t and label_t must be POD types - we do not support custom classes here
 	enum class GraphOrder {GORDER, IN_DEG, OUT_DEG, RCM, HUB_SORT, HUB_CLUSTER, DBG, BCORDER};
+	enum class ProfileOrder {GORDER, RCM};
 	typedef std::pair< dist_t, label_t > dist_label_t;
 
 private:
@@ -543,7 +544,7 @@ public:
 	}
 
 	void profile_reorder(void* queries, int n_queries,
-		int ef_search, int w){
+		int ef_search, ProfileOrder algorithm){
 		// construct the weighted graph
 		std::vector< std::vector<node_id_t> > outdegree_table(cur_num_nodes);
 		std::vector< std::vector<float> > outdegree_weights(cur_num_nodes);
@@ -560,8 +561,13 @@ public:
 			char* q = (char*)(queries) + i*(data_size_bytes);
 			profile_search(q, ef_search, outdegree_table, outdegree_weights);
 		}
-		std::vector<node_id_t> P = weighted_g_order<node_id_t>(outdegree_table, outdegree_weights, w);
-		// std::vector<node_id_t> P = g_order<node_id_t>(outdegree_table, w);
+
+		std::vector<node_id_t> P;
+		switch(algorithm){
+			case ProfileOrder::GORDER    : P = weighted_g_order<node_id_t>(outdegree_table, outdegree_weights, 5); break;
+			case ProfileOrder::RCM       : P = weighted_rcm_order<node_id_t>(outdegree_table, outdegree_weights); break;
+		}
+
 		relabel(P);
 	}
 

@@ -16,7 +16,7 @@ int main(int argc, char **argv){
 
     if (argc < 9){
         std::clog<<"Usage: "<<std::endl; 
-        std::clog<<"query <index> <n_queries> <queries> <gtruth> <ef_search> <k> <Reorder ID> <temp-profile-dump>"<<std::endl;
+        std::clog<<"query <index> <n_queries> <queries> <gtruth> <ef_search> <k> <Reorder ID>"<<std::endl;
 
         std::clog<<"\t <ef_search>: int,int,int,int...,int "<<std::endl;
         std::clog<<"\t <k>: number of neighbors "<<std::endl;
@@ -28,7 +28,6 @@ int main(int argc, char **argv){
 	int Nq = std::stoi(argv[2]);
 
 	int reorder_ID = std::stoi(argv[7]);
-        std::string dumpfilename(argv[8]);	
 	unsigned char* queries = new unsigned char[Nq*dim];
 	std::ifstream querystream(argv[3] ,std::ios::binary);
 	std::clog<<"Reading queries: ";
@@ -137,15 +136,6 @@ int main(int argc, char **argv){
         auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
         std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
     }
-    else if (reorder_ID == 8){
-        std::clog<<"Using BCORDER"<<std::endl;
-        std::clog << "Reordering: "<< std::endl;
-        auto start_r = std::chrono::high_resolution_clock::now();
-        index.reorder(Index<int, int>::GraphOrder::BCORDER);
-        auto stop_r = std::chrono::high_resolution_clock::now();
-        auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
-        std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
-    }
     else if (reorder_ID == 41){
         std::clog<<"Using RCM+Gorder"<<std::endl;
         std::clog << "Reordering: "<< std::endl;
@@ -156,16 +146,23 @@ int main(int argc, char **argv){
         auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
         std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
     }
-    else if (reorder_ID == 9){
-        std::clog<<"Using profile-based order"<<std::endl;
+    else if (reorder_ID == 19){
+        std::clog<<"Using profile-based GORDER"<<std::endl;
         std::clog<<"Reordering"<<std::endl;
         auto start_r = std::chrono::high_resolution_clock::now();
-        index.profile_reorder(queries, Nq, 100, 5);
+        index.profile_reorder(queries, Nq, 100, Index<int, int>::ProfileOrder::GORDER);
         auto stop_r = std::chrono::high_resolution_clock::now();
         auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
         std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
-        std::clog<<"Dumping index "<<std::endl;
-        index.save(dumpfilename);
+    }
+    else if (reorder_ID == 49){
+        std::clog<<"Using profile-based RCM"<<std::endl;
+        std::clog<<"Reordering"<<std::endl;
+        auto start_r = std::chrono::high_resolution_clock::now();
+        index.profile_reorder(queries, Nq, 100, Index<int, int>::ProfileOrder::RCM);
+        auto stop_r = std::chrono::high_resolution_clock::now();
+        auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
+        std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
     }
     else{
         std::clog<<"No reordering"<<std::endl;
