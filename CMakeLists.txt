@@ -74,7 +74,7 @@ ADD_DEPENDENCIES( FLAT_NAV_LIB CNPY )
 TARGET_LINK_LIBRARIES( FLAT_NAV_LIB ${CNPY_LIB} )
 set_target_properties( FLAT_NAV_LIB PROPERTIES LINKER_LANGUAGE CXX)
 
-foreach(CONSTRUCT_EXEC construct query graphdump query_sparse reorder graphstats )
+foreach(CONSTRUCT_EXEC construct query graphdump query_sparse reorder graphstats sift_query sift_construct)
   ADD_EXECUTABLE( ${CONSTRUCT_EXEC} ${PROJECT_SOURCE_DIR}/tools/${CONSTRUCT_EXEC}.cpp )
   ADD_DEPENDENCIES( ${CONSTRUCT_EXEC} FLAT_NAV_LIB )
   TARGET_LINK_LIBRARIES( 

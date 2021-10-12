@@ -7,7 +7,7 @@
 #include <utility>
 #include <sstream>
 
-#include "flatnav/Index.h"
+#include "../flatnav/Index.h"
 #include <algorithm>
 #include <string>
 
