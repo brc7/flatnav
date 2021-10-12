@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <queue>
 #include <utility>
-
+#include <limits>
 
 // Ben: all algorithms make the following assumptions
 // input is a vector of vectors called outdegree_table, where outdegree_table[node] is a vector of the outbound edges from node
@@ -412,7 +412,7 @@ std::vector<node_id_t> weighted_g_order(std::vector< std::vector<node_id_t> > &o
 
     // for i = 1 to N:
     for (int i = 1; i < cur_num_nodes; i++){
-    	// if (i%1000==0){std::cout<<i<<"/"<<cur_num_nodes<<std::endl;}
+        // if (i%1000==0){std::cout<<i<<"/"<<cur_num_nodes<<std::endl;}
         node_id_t v_e = P[i-1];
         // ve = newest node in window
         // for each node u in out-edges of ve:
@@ -600,5 +600,80 @@ std::vector<node_id_t> bc_order(std::vector< std::vector<node_id_t> > &outdegree
     }
     // now we have a mapping Pinv[i] -> new label of node i
     return Pinv;
+}
+
+
+
+template <typename node_id_t>
+std::vector<node_id_t> grl_order(std::vector< std::vector<node_id_t> > &outdegree_table,
+                                int n_hashes, unsigned int seed = 534){
+
+    int cur_num_nodes = outdegree_table.size();
+    // std::cout<<"A"<<std::endl;
+
+    // minhash_sketch contains minhashes for each edge in the dataset
+    std::vector< std::vector<unsigned int> > minhash_sketch(cur_num_nodes,
+        std::vector<unsigned int>(n_hashes, std::numeric_limits<unsigned int>::max()));
+
+    // std::cout<<"B"<<std::endl;
+    // universal (ax+b)%prime hash function parameters
+    std::vector<int> hash_a(n_hashes);
+    std::vector<int> hash_b(n_hashes);
+    int hash_prime = 1000099;
+
+    // initialize the hashes with RNG
+    std::mt19937 rng(seed);
+    std::uniform_int_distribution<int> uniform(1,cur_num_nodes);
+    for (int i = 0; i < n_hashes; i++){
+        hash_a[i] = uniform(rng);
+        hash_b[i] = uniform(rng);
+    }
+
+    // std::cout<<"C"<<std::endl;
+
+    // populate the sketch by adding edge u->v to the sketch (for all edges)
+    // we treat each node's representation as the list of in-neighbors, and 
+    // we compute the minhash of this list
+    for(node_id_t u = 0; u < cur_num_nodes; u++){
+        // calculate the hash of node u (for each of the n_hashes functions)
+        for (int i = 0; i < n_hashes; i++){
+            unsigned int hash_code_u = (hash_a[i]*u + hash_b[i]) % hash_prime;
+            for (node_id_t& v : outdegree_table[u]){
+                // for each node v in children(u), add u to minhash sketch of v
+                minhash_sketch[v][i] = std::min(hash_code_u, minhash_sketch[v][i]);
+            }
+        }
+    }
+
+    // std::cout<<"D"<<std::endl;
+
+
+    // now we get the order, using the minhash sketch table
+    std::vector<node_id_t> Pinv(cur_num_nodes);
+    std::iota(Pinv.begin(), Pinv.end(), 0);
+    std::stable_sort(Pinv.begin(), Pinv.end(), [&](const node_id_t i, const node_id_t j) {
+        for (int k = 0; k < n_hashes; k++) {
+            if (minhash_sketch[i][k] != minhash_sketch[j][k]) {
+                // consider:
+                // if (k%2) return minhash_sketch[i][k] < minhash_sketch[j][k]
+                // else return minhash_sketch[i][k] > minhash_sketch[j][k]
+                return minhash_sketch[i][k] <= minhash_sketch[j][k];
+            }
+        }
+        // std::cout<<"NO: "<<i<<"\t"<<j<<std::endl;
+        return true;
+    });
+
+    // std::cout<<"E"<<std::endl;
+
+    // finally, invert the index
+    std::vector<node_id_t> P(cur_num_nodes, 0);
+    for (int n = 0; n < cur_num_nodes; n++){
+        P[Pinv[n]] = n;
+    }
+    // std::cout<<"F"<<std::endl;
+    // now we have a mapping P[i] -> new label of node i
+    return P;
+
 }
 

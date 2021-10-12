@@ -168,6 +168,15 @@ int main(int argc, char **argv){
         std::clog<<"Dumping index "<<std::endl;
         index.save("profile-order.idx");
     }
+    else if (reorder_ID == 10){
+        std::clog<<"Using LSH order"<<std::endl;
+        std::clog<<"Reordering"<<std::endl;
+        auto start_r = std::chrono::high_resolution_clock::now();
+        index.reorder(Index<float, int>::GraphOrder::GRLORDER);
+        auto stop_r = std::chrono::high_resolution_clock::now();
+        auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
+        std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
+    }
     else{
         std::clog<<"No reordering"<<std::endl;
     }
