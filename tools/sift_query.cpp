@@ -27,6 +27,8 @@ int main(int argc, char **argv){
 	size_t dim = 128;
 	int Nq = std::stoi(argv[2]);
 
+	int reorder_ID = std::stoi(argv[7]);
+        std::string dumpfilename(argv[8]);	
 	unsigned char* queries = new unsigned char[Nq*dim];
 	std::ifstream querystream(argv[3] ,std::ios::binary);
 	std::clog<<"Reading queries: ";
@@ -163,7 +165,7 @@ int main(int argc, char **argv){
         auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
         std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
         std::clog<<"Dumping index "<<std::endl;
-        index.save("profile-order.idx");
+        index.save(dumpfilename);
     }
     else{
         std::clog<<"No reordering"<<std::endl;
