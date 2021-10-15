@@ -625,7 +625,7 @@ std::vector<node_id_t> weighted_rcm_order(std::vector< std::vector<node_id_t> > 
     }
 
     std::sort(sorted_nodes.begin(), sorted_nodes.end(),
-        [](const std::pair<node_id_t,float> &a, const std::pair<node_id_t,float> &b){return a.second > b.second; });
+        [](const std::pair<node_id_t,float> &a, const std::pair<node_id_t,float> &b){return a.second < b.second; });
 
     std::vector<node_id_t> P;
     ExplicitSet is_listed = ExplicitSet(cur_num_nodes);
@@ -648,7 +648,7 @@ std::vector<node_id_t> weighted_rcm_order(std::vector< std::vector<node_id_t> > 
 
             // sort neighbors by degree (max weighted degree first)
             std::sort(neighbors.begin(), neighbors.end(), 
-                [](const std::pair<node_id_t,float>&a, const std::pair<node_id_t,float>&b) { return a.second > b.second; });
+                [](const std::pair<node_id_t,float>&a, const std::pair<node_id_t,float>&b) { return a.second < b.second; });
 
             // add neighbors to queue
             for (int j = 0; j < neighbors.size(); j++){
@@ -670,7 +670,7 @@ std::vector<node_id_t> weighted_rcm_order(std::vector< std::vector<node_id_t> > 
                     }
                     // sort neighbors by degree (max weighted degree first)
                     std::sort(candidate_neighbors.begin(), candidate_neighbors.end(),
-                        [](const std::pair<node_id_t,float>&a, const std::pair<node_id_t,float>&b){ return a.second > b.second; });
+                        [](const std::pair<node_id_t,float>&a, const std::pair<node_id_t,float>&b){ return a.second < b.second; });
                     // add neighbors to queue
                     for (int j = 0; j < candidate_neighbors.size(); j++){
                         Q.push(candidate_neighbors[j].first);
@@ -679,7 +679,8 @@ std::vector<node_id_t> weighted_rcm_order(std::vector< std::vector<node_id_t> > 
             }
         }
     }
-
+    std::reverse(P.begin(),P.end());
+    
     std::vector<node_id_t> Pinv(cur_num_nodes, 0);
     for (int n = 0; n < cur_num_nodes; n++){
         Pinv[P[n]] = n;
