@@ -341,6 +341,126 @@ std::vector<node_id_t> rcm_order(std::vector< std::vector<node_id_t> > &outdegre
 }
 
 
+template <typename node_id_t>
+std::vector<node_id_t> rcm_order_2hop(std::vector< std::vector<node_id_t> > &outdegree_table){
+
+    std::clog<<"A"<<std::endl;
+    // this is super freaking hacky
+    // this is a steaming pile of garbage and we should be using std::set
+    int cur_num_nodes = outdegree_table.size();
+    std::vector< std::vector<node_id_t> > patched_outdegree_table(cur_num_nodes);
+
+    for (node_id_t node = 0; node < cur_num_nodes; node++){
+        if (node%100000==0){
+            std::clog<<"."<<std::flush;
+        }
+        // std::clog<<node<<"\t";
+        // can we add support for multi-hop here?
+        for (int i = 0; i < outdegree_table[node].size(); i++){
+            node_id_t neighbor_node = outdegree_table[node][i];
+            // std::clog<<neighbor_node<<"[";
+            for (int j = 0; j < outdegree_table[neighbor_node].size(); j++){
+                // std::clog<<outdegree_table[neighbor_node][j]<<" ";
+                if (neighbor_node != node){
+                    patched_outdegree_table[node].push_back(outdegree_table[neighbor_node][j]);
+                }
+            }
+            // std::clog<<"] ";
+        }
+    }
+    std::clog<<std::endl<<"B"<<std::endl;
+
+    for (node_id_t node = 0; node < cur_num_nodes; node++){
+        if (node%100000==0){
+            std::clog<<"."<<std::flush;
+        }
+        for (int i = 0; i < patched_outdegree_table[node].size(); i++){
+            bool is_in_table_already = false;
+            for (int j = 0; j < outdegree_table[node].size(); j++){
+                is_in_table_already = is_in_table_already || (patched_outdegree_table[node][i] == outdegree_table[node][j]);
+            }
+            if (!is_in_table_already){
+                outdegree_table[node].push_back(patched_outdegree_table[node][i]);
+            }
+        }
+    }
+
+    std::clog<<std::endl<<"C"<<std::endl;
+
+    std::vector< std::pair<node_id_t, int> > sorted_nodes; 
+    std::vector<int> degrees;
+    
+    for (node_id_t node = 0; node < cur_num_nodes; node++){
+        int deg = outdegree_table[node].size();
+        sorted_nodes.push_back({node, deg});
+        degrees.push_back(deg);
+    }
+
+    std::sort(sorted_nodes.begin(), sorted_nodes.end(),
+        [](const std::pair<node_id_t,int> &a, const std::pair<node_id_t,int> &b){return a.second < b.second; });
+
+    std::vector<node_id_t> P;
+    ExplicitSet is_listed = ExplicitSet(cur_num_nodes);
+    is_listed.clear();
+
+    for (int i = 0; i < sorted_nodes.size(); i++){
+        node_id_t node = sorted_nodes[i].first; 
+        std::queue<node_id_t> Q; 
+
+        if (!is_listed[node]){
+            // add node to permutation
+            P.push_back(node); 
+            is_listed.insert(node);
+
+            // get list of neighbors
+            std::vector< std::pair<node_id_t, int> > neighbors; 
+            for (auto& edge : outdegree_table[node]){
+                neighbors.push_back( { edge, degrees[edge] } );
+            }
+
+            // sort neighbors by degree (min degree first)
+            std::sort(neighbors.begin(), neighbors.end(), 
+                [](const std::pair<node_id_t,int>&a, const std::pair<node_id_t,int>&b) { return a.second < b.second; });
+
+            // add neighbors to queue
+            for (int j = 0; j < neighbors.size(); j++){
+                Q.push(neighbors[j].first);
+            }
+
+            while (Q.size() > 0){
+                // exhause all the neighbors
+                node_id_t candidate = Q.front();
+                Q.pop(); 
+                if (!is_listed[candidate]){
+                    P.push_back(candidate);
+                    is_listed.insert(candidate);
+
+                    // get list of neighbors of candidate
+                    std::vector< std::pair<node_id_t,int> > candidate_neighbors; 
+                    for(auto& edge: outdegree_table[candidate]){
+                        candidate_neighbors.push_back( {edge, degrees[edge]} );
+                    }
+                    // sort neighbors by degree (min degree first)
+                    std::sort(candidate_neighbors.begin(), candidate_neighbors.end(),
+                        [](const std::pair<node_id_t,int>&a, const std::pair<node_id_t,int>&b){ return a.second < b.second; });
+                    // add neighbors to queue
+                    for (int j = 0; j < candidate_neighbors.size(); j++){
+                        Q.push(candidate_neighbors[j].first);
+                    }
+                }
+            }
+        }
+    }
+    
+    std::reverse(P.begin(),P.end());
+    std::vector<node_id_t> Pinv(cur_num_nodes, 0);
+    for (int n = 0; n < cur_num_nodes; n++){
+        Pinv[P[n]] = n;
+    }
+    return Pinv;
+}
+
+
 template <typename node_id_t> 
 std::vector<node_id_t> hubcluster_order(std::vector< std::vector<node_id_t> > &outdegree_table){
 
