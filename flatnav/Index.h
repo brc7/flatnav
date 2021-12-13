@@ -421,7 +421,7 @@ public:
 			neighbors.pop();
 		}
 		std::sort( results.begin(), results.end(), [](const dist_label_t& left, const dist_label_t& right)
-			{ return left.second < right.second; });
+			{ return left.first < right.first; });
 		return results;
 	}
 
