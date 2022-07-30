@@ -32,7 +32,7 @@ public:
 	// dist_t is the type of the underlying metric space (i.e. for uint8_t images, dist_t is uint8_t)
 	// label_t is a fixed-size 
 	// both dist_t and label_t must be POD types - we do not support custom classes here
-	enum class GraphOrder {GORDER, IN_DEG, OUT_DEG, RCM, HUB_SORT, HUB_CLUSTER, DBG, BCORDER};
+	enum class GraphOrder {GORDER, IN_DEG, OUT_DEG, RCM, RCM_2HOP, HUB_SORT, HUB_CLUSTER, DBG, BCORDER};
 	enum class ProfileOrder {GORDER, RCM};
 	typedef std::pair< dist_t, label_t > dist_label_t;
 
@@ -421,7 +421,7 @@ public:
 			neighbors.pop();
 		}
 		std::sort( results.begin(), results.end(), [](const dist_label_t& left, const dist_label_t& right)
-			{ return left.second < right.second; });
+			{ return left.first < right.first; });
 		return results;
 	}
 
@@ -535,6 +535,7 @@ public:
 			case GraphOrder::IN_DEG      : P = indegree_order<node_id_t>(outdegree_table); break;
 			case GraphOrder::OUT_DEG     : P = outdegree_order<node_id_t>(outdegree_table); break;
 			case GraphOrder::RCM         : P = rcm_order<node_id_t>(outdegree_table); break;
+			case GraphOrder::RCM_2HOP    : P = rcm_order_2hop<node_id_t>(outdegree_table); break;
 			case GraphOrder::HUB_SORT    : P = hubsort_order<node_id_t>(outdegree_table); break;
 			case GraphOrder::HUB_CLUSTER : P = hubcluster_order<node_id_t>(outdegree_table); break;
 			case GraphOrder::DBG         : P = dbg_order<node_id_t>(outdegree_table, 8); break;
@@ -626,5 +627,25 @@ public:
 		}
 	}
 
+
+	std::vector< int > location_search(const void* query, const int K, int ef_search, int n_initializations = 100){
+		node_id_t entry_node = searchInitialization(query, n_initializations);
+		PriorityQueue neighbors = beamSearch(query, entry_node, ef_search);
+		std::vector<dist_node_t> results;
+		while(neighbors.size() > K){
+			neighbors.pop();
+		}
+		while( neighbors.size() > 0 ){
+			results.emplace_back(neighbors.top().first, neighbors.top().second);
+			neighbors.pop();
+		}
+		std::sort( results.begin(), results.end(), [](const dist_node_t& left, const dist_node_t& right)
+			{ return left.first < right.first; });
+		std::vector<int> out(K);
+		for (int i = 0; i < K; i++){
+			out[i] = results[i].second;
+		}
+		return out;
+	}
 
 };
