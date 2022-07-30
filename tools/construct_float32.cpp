@@ -86,16 +86,6 @@ int main(int argc, char **argv){
         return -1;
     }
 
-    SpaceInterface<float>* space;
-    if (space_ID == 0){
-        space = new L2Space(dim);
-    } else {
-        space = new InnerProductSpace(dim);
-    }
-    Index<float, int> index(&space, N, M);
-
-    auto start = std::chrono::high_resolution_clock::now();
-
     unsigned int dim_check;
     unsigned int num_check;
     input.read((char*)&num_check, 4);
@@ -108,12 +98,22 @@ int main(int argc, char **argv){
     std::clog<<"Reading "<<N<<" points of "<<num_check<<" total points of dimension "<<dim_check<<"."<<std::endl;
     if (num_check != N){std::clog<<"Warning: Using only "<< N << " points of total "<< num_check <<"."<<std::endl;}
 
-    float *element = new float[dim];
+
+    SpaceInterface<float>* space;
+    if (space_ID == 0){
+        space = new L2Space(dim_check);
+    } else {
+        space = new InnerProductSpace(dim_check);
+    }
+    Index<float, int> index(space, N, M);
+
+    auto start = std::chrono::high_resolution_clock::now();
+    float *element = new float[dim_check];
     for (int label = 0; label < N; label++) {
-        input.read((char*) element, 4*dim);
+        input.read((char*) element, 4*dim_check);
         index.add((void*) element, label, ef_construction, 1000);
-        if (verbose > 0){
-            if (label%verbose == 0){std::clog<<"+"<<std::endl;}
+        if (num_verbose > 0){
+            if (label%num_verbose == 0){std::clog<<"+"<<std::endl;}
         }
     }
     delete[] element;

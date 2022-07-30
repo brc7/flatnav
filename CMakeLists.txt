@@ -68,13 +68,13 @@ SET( CNPY_LIB ${PROJECT_BINARY_DIR}/ep/lib/libcnpy.a )
 
 FILE( GLOB_RECURSE HEADERS "${PROJECT_SOURCE_DIR}/flatnav/*.h" )
 
-ADD_LIBRARY( FLAT_NAV_LIB ${HEADERS} ${PROJECT_SOURCE_DIR}/tools/construct.cpp )
+ADD_LIBRARY( FLAT_NAV_LIB ${HEADERS} ${PROJECT_SOURCE_DIR}/tools/construct_npy.cpp )
 ADD_DEPENDENCIES( FLAT_NAV_LIB CNPY )
 
 TARGET_LINK_LIBRARIES( FLAT_NAV_LIB ${CNPY_LIB} )
 set_target_properties( FLAT_NAV_LIB PROPERTIES LINKER_LANGUAGE CXX)
 
-foreach(CONSTRUCT_EXEC construct query reorder construct_float32 reorder_float32 query_float32)
+foreach(CONSTRUCT_EXEC construct_npy query_npy reorder_npy construct_float32 reorder_float32)
   ADD_EXECUTABLE( ${CONSTRUCT_EXEC} ${PROJECT_SOURCE_DIR}/tools/${CONSTRUCT_EXEC}.cpp )
   ADD_DEPENDENCIES( ${CONSTRUCT_EXEC} FLAT_NAV_LIB )
   TARGET_LINK_LIBRARIES( 

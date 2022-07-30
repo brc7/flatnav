@@ -66,8 +66,8 @@ int main(int argc, char **argv){
         } else {
             space = new InnerProductSpace(dim);
         }
-        Index<float, int> index(&space, N, M);
-
+        Index<float, int> index(space, infile);
+        
         if (reorder_ID == 91){
             std::clog<<"Using profile-based GORDER"<<std::endl;
             std::clog<<"Reordering"<<std::endl;
