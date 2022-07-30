@@ -124,7 +124,7 @@ int main(int argc, char **argv){
     std::clog << "Build time: " << (float)(duration.count())/(1000.0) << " seconds" << std::endl; 
 
     std::clog << "Saving index to: " << outfilename << std::endl;
-    index.save(filename);
+    index.save(outfilename);
 
     return 0;
 }
