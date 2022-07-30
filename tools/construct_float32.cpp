@@ -123,8 +123,7 @@ int main(int argc, char **argv){
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
     std::clog << "Build time: " << (float)(duration.count())/(1000.0) << " seconds" << std::endl; 
 
-    std::clog << "Saving index to: " << argv[5] << std::endl;
-    std::string filename(argv[5]);
+    std::clog << "Saving index to: " << outfilename << std::endl;
     index.save(filename);
 
     return 0;
