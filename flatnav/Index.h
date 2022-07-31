@@ -50,12 +50,12 @@ private:
 
 	char* index_memory;
 
-	int M;
-	int data_size_bytes; // size of one data point (we do not support variable-size data e.g. strings)
-	int node_size_bytes; // Node consists of: ([data] [M links] [data label]). This layout was selected as 
+	size_t M;
+	size_t data_size_bytes; // size of one data point (we do not support variable-size data e.g. strings)
+	size_t node_size_bytes; // Node consists of: ([data] [M links] [data label]). This layout was selected as 
 	// the one with the best cache performance after trying several options 
-	int max_num_nodes; // determines size of internal pre-allocated memory
-	int cur_num_nodes;
+	size_t max_num_nodes; // determines size of internal pre-allocated memory
+	size_t cur_num_nodes;
 
 	DistanceFunction<dist_t> distance; // call-by-pointer distance function
 	void* distance_param; // TODO: get rid of this shit. 
@@ -379,7 +379,7 @@ public:
 		distance = space->get_dist_func();
 		data_size_bytes = space->get_data_size();
 		node_size_bytes = space->get_data_size() + sizeof(node_id_t)*M + sizeof(label_t);
-		size_t index_memory_size = node_size_bytes*(size_t)(max_num_nodes);
+		size_t index_memory_size = node_size_bytes*max_num_nodes;
 		index_memory = new char[index_memory_size];		
 	}
 
@@ -433,11 +433,11 @@ public:
 		// int or node_id_t (which can be compiler dependent).
 		// currently none of this is safe across machines or even across compilers, probably. Really sorry about that.
 
-		out.write(reinterpret_cast< char *>(&M), sizeof(int));
-		out.write(reinterpret_cast< char *>(&max_num_nodes), sizeof(int));
-		out.write(reinterpret_cast< char *>(&cur_num_nodes), sizeof(int));
-		out.write(reinterpret_cast< char *>(&data_size_bytes), sizeof(int));
-		out.write(reinterpret_cast< char *>(&node_size_bytes), sizeof(int));
+		out.write(reinterpret_cast< char *>(&M), sizeof(size_t));
+		out.write(reinterpret_cast< char *>(&max_num_nodes), sizeof(size_t));
+		out.write(reinterpret_cast< char *>(&cur_num_nodes), sizeof(size_t));
+		out.write(reinterpret_cast< char *>(&data_size_bytes), sizeof(size_t));
+		out.write(reinterpret_cast< char *>(&node_size_bytes), sizeof(size_t));
 		
 		// write the index partition
 		size_t index_memory_size = node_size_bytes*max_num_nodes;
@@ -448,11 +448,11 @@ public:
 	void load(const std::string& location, SpaceInterface<dist_t> *space){
 
 		std::ifstream in(location, std::ios::binary);
-		in.read(reinterpret_cast< char *>(&M), sizeof(int));
-		in.read(reinterpret_cast< char *>(&max_num_nodes), sizeof(int));
-		in.read(reinterpret_cast< char *>(&cur_num_nodes), sizeof(int));
-		in.read(reinterpret_cast< char *>(&data_size_bytes), sizeof(int));
-		in.read(reinterpret_cast< char *>(&node_size_bytes), sizeof(int));
+		in.read(reinterpret_cast< char *>(&M), sizeof(size_t));
+		in.read(reinterpret_cast< char *>(&max_num_nodes), sizeof(size_t));
+		in.read(reinterpret_cast< char *>(&cur_num_nodes), sizeof(size_t));
+		in.read(reinterpret_cast< char *>(&data_size_bytes), sizeof(size_t));
+		in.read(reinterpret_cast< char *>(&node_size_bytes), sizeof(size_t));
 
 		if (index_memory != NULL){
 			delete[] index_memory;
