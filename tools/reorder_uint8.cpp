@@ -74,7 +74,7 @@ int main(int argc, char **argv){
             std::clog<<"Using profile-based GORDER"<<std::endl;
             std::clog<<"Reordering"<<std::endl;
             auto start_r = std::chrono::high_resolution_clock::now();
-            index.profile_reorder(queries, num_queries, ef_search, Index<float, int>::ProfileOrder::GORDER);
+            index.profile_reorder(queries, num_queries, ef_search, Index<int, int>::ProfileOrder::GORDER);
             auto stop_r = std::chrono::high_resolution_clock::now();
             auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
             std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
@@ -83,7 +83,7 @@ int main(int argc, char **argv){
             std::clog<<"Using profile-based RCM"<<std::endl;
             std::clog<<"Reordering"<<std::endl;
             auto start_r = std::chrono::high_resolution_clock::now();
-            index.profile_reorder(queries, num_queries, ef_search, Index<float, int>::ProfileOrder::RCM);
+            index.profile_reorder(queries, num_queries, ef_search, Index<int, int>::ProfileOrder::RCM);
             auto stop_r = std::chrono::high_resolution_clock::now();
             auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
             std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
@@ -102,7 +102,7 @@ int main(int argc, char **argv){
             std::clog<<"Using GORDER"<<std::endl;
             std::clog << "Reordering: "<< std::endl; 
             auto start_r = std::chrono::high_resolution_clock::now();    
-            index.reorder(Index<float, int>::GraphOrder::GORDER);
+            index.reorder(Index<int, int>::GraphOrder::GORDER);
             auto stop_r = std::chrono::high_resolution_clock::now();
             auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
             std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
@@ -111,7 +111,7 @@ int main(int argc, char **argv){
             std::clog<<"Using IN-DEG-SORT"<<std::endl;
             std::clog << "Reordering: "<< std::endl;
             auto start_r = std::chrono::high_resolution_clock::now();
-            index.reorder(Index<float, int>::GraphOrder::IN_DEG);
+            index.reorder(Index<int, int>::GraphOrder::IN_DEG);
             auto stop_r = std::chrono::high_resolution_clock::now();
             auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
             std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
@@ -120,7 +120,7 @@ int main(int argc, char **argv){
             std::clog<<"Using OUT-DEG-SORT"<<std::endl;
             std::clog << "Reordering: "<< std::endl;
             auto start_r = std::chrono::high_resolution_clock::now();
-            index.reorder(Index<float, int>::GraphOrder::OUT_DEG);
+            index.reorder(Index<int, int>::GraphOrder::OUT_DEG);
             auto stop_r = std::chrono::high_resolution_clock::now();
             auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
             std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
@@ -129,7 +129,7 @@ int main(int argc, char **argv){
             std::clog<<"Using Reverse-Cuthill-McKee"<<std::endl;
             std::clog << "Reordering: "<< std::endl;
             auto start_r = std::chrono::high_resolution_clock::now();
-            index.reorder(Index<float, int>::GraphOrder::RCM);
+            index.reorder(Index<int, int>::GraphOrder::RCM);
             auto stop_r = std::chrono::high_resolution_clock::now();
             auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
             std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
@@ -138,7 +138,7 @@ int main(int argc, char **argv){
             std::clog<<"Using HUBSORT"<<std::endl;
             std::clog << "Reordering: "<< std::endl;
             auto start_r = std::chrono::high_resolution_clock::now();
-            index.reorder(Index<float, int>::GraphOrder::HUB_SORT);
+            index.reorder(Index<int, int>::GraphOrder::HUB_SORT);
             auto stop_r = std::chrono::high_resolution_clock::now();
             auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
             std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
@@ -147,7 +147,7 @@ int main(int argc, char **argv){
             std::clog<<"Using HUBCLUSTER"<<std::endl;
             std::clog << "Reordering: "<< std::endl;
             auto start_r = std::chrono::high_resolution_clock::now();
-            index.reorder(Index<float, int>::GraphOrder::HUB_CLUSTER);
+            index.reorder(Index<int, int>::GraphOrder::HUB_CLUSTER);
             auto stop_r = std::chrono::high_resolution_clock::now();
             auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
             std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
@@ -156,7 +156,7 @@ int main(int argc, char **argv){
             std::clog<<"Using DBG"<<std::endl;
             std::clog << "Reordering: "<< std::endl;
             auto start_r = std::chrono::high_resolution_clock::now();
-            index.reorder(Index<float, int>::GraphOrder::DBG);
+            index.reorder(Index<int, int>::GraphOrder::DBG);
             auto stop_r = std::chrono::high_resolution_clock::now();
             auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
             std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
@@ -165,7 +165,7 @@ int main(int argc, char **argv){
             std::clog<<"Using CORDER"<<std::endl;
             std::clog << "Reordering: "<< std::endl;
             auto start_r = std::chrono::high_resolution_clock::now();
-            index.reorder(Index<float, int>::GraphOrder::BCORDER);
+            index.reorder(Index<int, int>::GraphOrder::BCORDER);
             auto stop_r = std::chrono::high_resolution_clock::now();
             auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
             std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
@@ -176,8 +176,8 @@ int main(int argc, char **argv){
             std::clog<<"Using RCM+Gorder"<<std::endl;
             std::clog << "Reordering: "<< std::endl;
             auto start_r = std::chrono::high_resolution_clock::now();
-            index.reorder(Index<float, int>::GraphOrder::RCM);
-            index.reorder(Index<float, int>::GraphOrder::GORDER);
+            index.reorder(Index<int, int>::GraphOrder::RCM);
+            index.reorder(Index<int, int>::GraphOrder::GORDER);
             auto stop_r = std::chrono::high_resolution_clock::now();
             auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
             std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
