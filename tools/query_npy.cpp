@@ -10,6 +10,7 @@
 #include "cnpy.h"
 #include <algorithm>
 #include <string>
+#include <sstream>
 
 
 int main(int argc, char **argv){
