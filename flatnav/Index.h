@@ -379,7 +379,7 @@ public:
 		distance = space->get_dist_func();
 		data_size_bytes = space->get_data_size();
 		node_size_bytes = space->get_data_size() + sizeof(node_id_t)*M + sizeof(label_t);
-		size_t index_memory_size = node_size_bytes*max_num_nodes;
+		size_t index_memory_size = node_size_bytes*(size_t)(max_num_nodes);
 		index_memory = new char[index_memory_size];		
 	}
 
