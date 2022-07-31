@@ -116,7 +116,7 @@ int main(int argc, char **argv){
             if (label%num_verbose == 0){std::clog<<"+";}
         }
     }
-    std:clog<<std::endl;
+    std::clog<<std::endl;
     delete[] element;
     input.close();
 
