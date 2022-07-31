@@ -15,7 +15,7 @@ int main(int argc, char **argv){
 
     if (argc < 4){
         std::clog<<"Usage: "<<std::endl; 
-        std::clog<<"query <index_in> <reorder_id> <index_out>";
+        std::clog<<"query <index_in> <reorder_id> <index_out> ";
         std::clog<<"[ <queries> <space> <num_queries> <ef_search> ]";
         std::clog<<"Positional arguments:"<<std::endl;
         std::clog<<"\t <index_in>: Filename for input index (float32 index)."<<std::endl;
@@ -67,7 +67,7 @@ int main(int argc, char **argv){
             space = new InnerProductSpace(dim);
         }
         Index<float, int> index(space, infile);
-        
+
         if (reorder_ID == 91){
             std::clog<<"Using profile-based GORDER"<<std::endl;
             std::clog<<"Reordering"<<std::endl;
@@ -92,7 +92,7 @@ int main(int argc, char **argv){
         std::clog<<"Saving index."<<std::endl;
         index.save(outfile);
     } else {
-        // we can do reordering without knowing anything about the space or dimensions.
+        // we can do other reordering methods without knowing anything about the space or dimensions.
         L2Space space(0);
         Index<float, int> index(&space, infile);
 
@@ -169,6 +169,8 @@ int main(int argc, char **argv){
             std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
         }
         else if (reorder_ID == 41){
+            // There's actually some benefit to doing this - using RCM as an initialization to Gorder results
+            // in better orderings from the greedy Gorder heuristic.
             std::clog<<"Using RCM+Gorder"<<std::endl;
             std::clog << "Reordering: "<< std::endl;
             auto start_r = std::chrono::high_resolution_clock::now();

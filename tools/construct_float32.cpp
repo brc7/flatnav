@@ -113,9 +113,10 @@ int main(int argc, char **argv){
         input.read((char*) element, 4*dim_check);
         index.add((void*) element, label, ef_construction, 1000);
         if (num_verbose > 0){
-            if (label%num_verbose == 0){std::clog<<"+"<<std::endl;}
+            if (label%num_verbose == 0){std::clog<<"+";}
         }
     }
+    std:clog<<std::endl;
     delete[] element;
     input.close();
 

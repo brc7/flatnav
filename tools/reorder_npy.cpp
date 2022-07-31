@@ -16,7 +16,7 @@ int main(int argc, char **argv){
 
     if (argc < 4){
         std::clog<<"Usage: "<<std::endl; 
-        std::clog<<"reorder_npy <index_in> <reorder_id> <index_out>";
+        std::clog<<"reorder_npy <index_in> <reorder_id> <index_out> ";
         std::clog<<"[ <queries> <space> <num_queries> <ef_search> ]";
         std::clog<<"Positional arguments:"<<std::endl;
         std::clog<<"\t <index_in>: Filename for input index (float32 index)."<<std::endl;
