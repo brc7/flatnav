@@ -92,7 +92,7 @@ int main(int argc, char **argv){
     // Allocate and load the queries into RAM.
     unsigned char* queries = new unsigned char[num_queries * dim];
     for (size_t i = 0; i < num_queries; i++){
-        querystream.read((char*)(queries + dim*i), 4*dim);
+        querystream.read((char*)(queries + dim*i), dim);
     }
     querystream.close();
     std::clog<<"Read "<<num_queries<<" queries into RAM."<<std::endl;
