@@ -6,12 +6,13 @@ construct - creates a near neighbor index from a data file
 reorder - applies graph reordering to permute the node ordering of the index
 query - queries the index and computes recall and other performance metrics
 
-
 The tools are largely self-documenting and will provide help if run without any command line arguments. Note that the reordering tools can generally run without needing access to the dataset, queries or distance metrics (unless profile-guided reordering is used).
 
 1. `$ cd flatnav`
 2. `$ cmake -G "Unix Makefiles"`
 3. `$ make` 
+
+You will need a C++11 capable compiler and a Git installation for cmake to run properly.
 
 ### Datasets from ANN-Benchmarks
 
@@ -21,6 +22,8 @@ To generate these NPY files from the HDF5 files provided by ANN-benchmarks, you 
 
 ```python dump.py dataset.hdf5```
 
+Note for MacOS users: CNPY appears to have a problem loading floating-point vectors. We have observed the issue on M1 Macs but not Intel (x86) Macs or Intel (x86) Ubuntu. At this time, it's not clear where the issue is or whether it's due to MacOS or arm64, but for now we suggest to convert to Big ANN-Benchmarks format if you are on an affected platform. See `translate_ann_benchmarks.py` for a demonstration on how to do this.
+
 
 ### Datasets from Big ANN Benchmarks
 
@@ -28,7 +31,7 @@ The Big ANN Benchmarks competitions from NeurIPS 2021 provides a new set of near
 
 To process these datasets, you will need to use the appropriate choice of construct_float32, reorder_float32 and query_float32 or construct_uint8, reorder_uint8 and query_uint8.
 
-Note: The original SIFT and DEEP benchmarks from CNRS/IRISA and FAIR use a slightly different format for each vector.
+Note: The original SIFT and DEEP benchmarks from CNRS/IRISA and FAIR use a slightly different format for each vector, where the dimension is stored alongside each vector instead of once at the beginning. These are not automatically compatible with the Big ANN-Benchmarks formats.
 
 
 ### Using Custom Datasets

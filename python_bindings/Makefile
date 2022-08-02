@@ -2,7 +2,7 @@
 # To make all tools: make tools
 
 CXX = g++
-CFLAGS= -std=c++11 -Ofast -DHAVE_CXX0X -DNDEBUG -openmp -march=native -fpic -w -ffast-math -funroll-loops -ftree-vectorize -g
+CFLAGS= -std=c++11 -Ofast -DHAVE_CXX0X -DNDEBUG -fpic -w -ffast-math -funroll-loops -ftree-vectorize -g
 LDFLAGS= -L/usr/local/lib/
 
 all: python-bindings

@@ -1,11 +1,11 @@
 import flatnav
 import numpy as np
 
-data = np.load("/home/ncm5/mnist-784-euclidean.train.npy")
+data = np.load("mnist-784-euclidean.train.npy")
 print("Data: ", data.shape)
-queries = np.load("/home/ncm5/mnist-784-euclidean.test.npy")
+queries = np.load("mnist-784-euclidean.test.npy")
 print("Queries: ", queries.shape)
-gtruths = np.load("/home/ncm5/mnist-784-euclidean.gtruth.npy")
+gtruths = np.load("mnist-784-euclidean.gtruth.npy")
 print("Gtruths: ", gtruths.shape)
 
 M = 16

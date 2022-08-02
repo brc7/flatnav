@@ -158,20 +158,20 @@ int main(int argc, char **argv){
         auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
         std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
     }
-    else if (reorder_ID == 19){
+    else if (reorder_ID == 91){
         std::clog<<"Using profile-based GORDER"<<std::endl;
         std::clog<<"Reordering"<<std::endl;
         auto start_r = std::chrono::high_resolution_clock::now();
-        index.profile_reorder(queries, Nq, 100, Index<float, int>::ProfileOrder::GORDER);
+        index.profile_reorder(queries, Nq, 1000, Index<float, int>::ProfileOrder::GORDER);
         auto stop_r = std::chrono::high_resolution_clock::now();
         auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
         std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
     }
-    else if (reorder_ID == 49){
+    else if (reorder_ID == 94){
         std::clog<<"Using profile-based RCM"<<std::endl;
         std::clog<<"Reordering"<<std::endl;
         auto start_r = std::chrono::high_resolution_clock::now();
-        index.profile_reorder(queries, Nq, 100, Index<float, int>::ProfileOrder::RCM);
+        index.profile_reorder(queries, Nq, 1000, Index<float, int>::ProfileOrder::RCM);
         auto stop_r = std::chrono::high_resolution_clock::now();
         auto duration_r = std::chrono::duration_cast<std::chrono::milliseconds>(stop_r - start_r);
         std::clog << "Reorder time: " << (float)(duration_r.count())/(1000.0) << " seconds" << std::endl; 
@@ -180,7 +180,7 @@ int main(int argc, char **argv){
         std::clog<<"No reordering"<<std::endl;
     }
 
-
+    std::cout<<"recall, mean_latency_ms"<<std::endl;
     for (int& ef_search: ef_searches){
         double mean_recall = 0;
 

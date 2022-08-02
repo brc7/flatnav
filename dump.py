@@ -19,6 +19,11 @@ print(train.shape,train.dtype)
 print(test.shape,test.dtype)
 print(gtruth.shape,gtruth.dtype)
 
+print(train.shape,train.dtype)
+print(test.shape,test.dtype)
+print(gtruth.shape,gtruth.dtype)
+
+
 if normalize:
     train /= ( np.linalg.norm(train, axis = 1, keepdims = True) + 1e-30 )
     test /= ( np.linalg.norm(test, axis = 1,keepdims = True) + 1e-30)
