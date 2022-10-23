@@ -7,7 +7,6 @@
 #include <utility>
 
 #include "flatnav/Index.h"
-#include "cnpy.h"
 #include <algorithm>
 #include <string>
 

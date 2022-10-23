@@ -1,9 +1,9 @@
 # How to use 
 # To make all tools: make tools
 
-CXX = /usr/local/Cellar/gcc/10.2.0/bin/g++-10
+CXX = /usr/local/bin/g++-10
 CFLAGS= -std=c++11 -Ofast -DHAVE_CXX0X -DNDEBUG -openmp -march=native -fpic -w -ffast-math -funroll-loops -ftree-vectorize -ftree-vectorizer-verbose=0 -g
-LDFLAGS= -L/usr/local/lib/ -lcnpy -lz
+LDFLAGS=
 
 SRCS = 
 SRCS_DIR = src/
@@ -11,7 +11,7 @@ SRCS_DIR = src/
 BUILD_DIR = build/
 BIN_DIR = bin/
 
-INC := -I ../flatnav -I/usr/local/include
+INC := -I ../flatnav
 
 # List of target executables
 TARGETS = construct.cpp query.cpp query_sparse.cpp graphstats.cpp graphdump.cpp reorder.cpp
