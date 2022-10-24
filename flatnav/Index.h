@@ -115,10 +115,10 @@ class Index {
     PriorityQueue candidates;  // C in the paper
 
     is_visited.clear();
-    dist_t dist = distance(query, nodeData(entry_node), distance_param);
+    dist_t inital_dist = distance(query, nodeData(entry_node), distance_param);
 
-    candidates.emplace(-dist, entry_node);
-    neighbors.emplace(dist, entry_node);
+    candidates.emplace(-inital_dist, entry_node);
+    neighbors.emplace(inital_dist, entry_node);
     is_visited.insert(entry_node);
 
     while (!candidates.empty()) {
@@ -150,19 +150,27 @@ class Index {
 
       auto [block_start, block_end] = getNodeBlock(d_node.second, max_distance_from_node);
 
+#pragma omp parallel for default(none) \
+    shared(block_start, block_end, neighbors, candidates, query, buffer_size) num_threads(2)
       for (node_id_t block_node = block_start; block_node < block_end; block_node++) {
         // Skip the node in the block if its already visited.
         if (!is_visited[block_node]) {
           is_visited.insert(block_node);
 
           dist_t dist = distance(query, nodeData(block_node), distance_param);
+
+          bool block_node_worth_exploring = false;
+#pragma omp critical
           if (neighbors.size() < buffer_size || dist < neighbors.top().first) {
             // If the node in the block is closest than the furthest found neighbor add it.
             neighbors.emplace(dist, block_node);
             if (neighbors.size() > buffer_size) {
               neighbors.pop();
             }
+            block_node_worth_exploring = true;
+          }
 
+          if (block_node_worth_exploring) {
             const node_id_t* links = nodeLinks(block_node);
 
             for (int nbr_idx = 0; nbr_idx < M; nbr_idx++) {
@@ -171,6 +179,7 @@ class Index {
 
                 dist_t nbr_dist = distance(query, nodeData(links[nbr_idx]), distance_param);
 
+#pragma omp critical
                 if (neighbors.size() < buffer_size || nbr_dist < neighbors.top().first) {
                   candidates.emplace(-nbr_dist, links[nbr_idx]);
                   neighbors.emplace(nbr_dist, links[nbr_idx]);
