@@ -14,7 +14,7 @@ BIN_DIR = bin/
 INC := -I ../flatnav
 
 # List of target executables
-TARGETS = construct.cpp query.cpp query_sparse.cpp graphstats.cpp graphdump.cpp reorder.cpp
+TARGETS = construct.cpp query.cpp query_sparse.cpp graphstats.cpp graphdump.cpp reorder.cpp query_block.cpp
 TARGETS_DIR = tools/
 
 # Everything beyond this point is determined from previous declarations, don't modify

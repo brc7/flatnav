@@ -99,6 +99,94 @@ class Index {
     return true;
   }
 
+  inline std::pair<node_id_t, node_id_t> getNodeBlock(node_id_t node,
+                                                      node_id_t max_distance_from_node) {
+    // We can't use std::max(0, cur_node - max_distance_from_node) because of overflow with uint32
+    node_id_t block_start = node < max_distance_from_node ? 0 : node - max_distance_from_node;
+    node_id_t block_end = std::min<node_id_t>(node + max_distance_from_node, cur_num_nodes);
+
+    return {block_start, block_end};
+  }
+
+  PriorityQueue blockBeamSearch(const void* query, const node_id_t entry_node,
+                                const int buffer_size, node_id_t max_distance_from_node) {
+    // returns an iterable list of node_id_t's, sorted by distance (ascending)
+    PriorityQueue neighbors;   // W in the paper
+    PriorityQueue candidates;  // C in the paper
+
+    is_visited.clear();
+    dist_t dist = distance(query, nodeData(entry_node), distance_param);
+
+    candidates.emplace(-dist, entry_node);
+    neighbors.emplace(dist, entry_node);
+    is_visited.insert(entry_node);
+
+    while (!candidates.empty()) {
+      /*
+      High level algorithm to explore block:
+        1. for node in block:
+        2.    if node is visited:
+        3.        skip node;
+        4.    dist := distance(node, query);
+        5.    if dist > furthest(neighbors):
+        6.        skip node;
+        7.    for nbr in node:
+        8.        if nbr is visited:
+        9.            skip nbr;
+        10.       dist := distance(nbr, query);
+        11.       if dist > furthest(neighbors):
+        12.           skip nbr;
+        13.       candidates.add(nbr);
+        14.       neighbors.insert(nbr);
+        15.       // pop neighbors if needed.
+      */
+
+      // get nearest element from candidates
+      dist_node_t d_node = candidates.top();
+      if ((-d_node.first) > neighbors.top().first) {
+        break;
+      }
+      candidates.pop();
+
+      auto [block_start, block_end] = getNodeBlock(d_node.second, max_distance_from_node);
+
+      for (node_id_t block_node = block_start; block_node < block_end; block_node++) {
+        // Skip the node in the block if its already visited.
+        if (!is_visited[block_node]) {
+          is_visited.insert(block_node);
+
+          dist_t dist = distance(query, nodeData(block_node), distance_param);
+          if (neighbors.size() < buffer_size || dist < neighbors.top().first) {
+            // If the node in the block is closest than the furthest found neighbor add it.
+            neighbors.emplace(dist, block_node);
+            if (neighbors.size() > buffer_size) {
+              neighbors.pop();
+            }
+
+            const node_id_t* links = nodeLinks(block_node);
+
+            for (int nbr_idx = 0; nbr_idx < M; nbr_idx++) {
+              if (!is_visited[links[nbr_idx]]) {
+                is_visited.insert(links[nbr_idx]);
+
+                dist_t nbr_dist = distance(query, nodeData(links[nbr_idx]), distance_param);
+
+                if (neighbors.size() < buffer_size || nbr_dist < neighbors.top().first) {
+                  candidates.emplace(-nbr_dist, links[nbr_idx]);
+                  neighbors.emplace(nbr_dist, links[nbr_idx]);
+                  if (neighbors.size() > buffer_size) {
+                    neighbors.pop();
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return neighbors;
+  }
+
   PriorityQueue beamSearch(const void* query, const node_id_t entry_node, const int buffer_size) {
     // returns an iterable list of node_id_t's, sorted by distance (ascending)
     PriorityQueue neighbors;   // W in the paper
@@ -547,5 +635,48 @@ class Index {
         break;
     }
     relabel(P);
+  }
+
+  void pruneEdgesByBlock(node_id_t max_distance_from_node) {
+    uint64_t pruned_edges = 0;
+    uint64_t total_edges = 0;
+    for (node_id_t cur_node = 0; cur_node < cur_num_nodes; cur_node++) {
+      // We can't use std::max(0, cur_node - max_distance_from_node) because of overflow with uint32
+      auto [block_start, block_end] = getNodeBlock(cur_node, max_distance_from_node);
+
+      node_id_t* node_links = nodeLinks(cur_node);
+
+      for (int i = 0; i < M; i++) {
+        if (node_links[i] != cur_node) {
+          if (node_links[i] >= block_start && node_links[i] <= block_end) {
+            node_links[i] = cur_node;
+            pruned_edges++;
+          }
+          total_edges++;
+        }
+      }
+    }
+
+    std::clog << "Block based pruning pruned " << pruned_edges << " out of " << total_edges
+              << " edges in graph." << std::endl;
+  }
+
+  std::vector<dist_label_t> blockSearch(const void* query, const int K, int ef_search,
+                                        node_id_t half_block_size, int n_initializations = 100) {
+    node_id_t entry_node = searchInitialization(query, n_initializations);
+    PriorityQueue neighbors = blockBeamSearch(query, entry_node, ef_search, half_block_size);
+    std::vector<dist_label_t> results;
+    while (neighbors.size() > K) {
+      neighbors.pop();
+    }
+    while (neighbors.size() > 0) {
+      results.emplace_back(neighbors.top().first, *nodeLabel(neighbors.top().second));
+      neighbors.pop();
+    }
+    std::sort(results.begin(), results.end(),
+              [](const dist_label_t& left, const dist_label_t& right) {
+                return left.second < right.second;
+              });
+    return results;
   }
 };
