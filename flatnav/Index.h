@@ -9,7 +9,10 @@
 #endif
 #endif
 
+#include <omp.h>
+
 #include <algorithm>  // for std::min
+#include <array>
 #include <cstring>
 #include <fstream>
 #include <limits>   // for std::numeric_limits<T>::max()
@@ -22,6 +25,8 @@
 #include "HashBasedBooleanSet.h"
 #include "SpaceInterface.h"
 #include "reordering.h"
+
+#define NUM_THREADS 1
 
 template <typename dist_t, typename label_t>
 class Index {
@@ -108,8 +113,8 @@ class Index {
     return {block_start, block_end};
   }
 
-  PriorityQueue blockBeamSearch(const void* query, const node_id_t entry_node,
-                                const int buffer_size, node_id_t max_distance_from_node) {
+  PriorityQueue blockBeamSearchOld(const void* query, const node_id_t entry_node,
+                                   const int buffer_size, node_id_t max_distance_from_node) {
     // returns an iterable list of node_id_t's, sorted by distance (ascending)
     PriorityQueue neighbors;   // W in the paper
     PriorityQueue candidates;  // C in the paper
@@ -150,8 +155,9 @@ class Index {
 
       auto [block_start, block_end] = getNodeBlock(d_node.second, max_distance_from_node);
 
-#pragma omp parallel for default(none) \
-    shared(block_start, block_end, neighbors, candidates, query, buffer_size) num_threads(2)
+      // #pragma omp parallel for default(none)
+      //     shared(block_start, block_end, neighbors, candidates, query, buffer_size)
+      //     num_threads(2)
       for (node_id_t block_node = block_start; block_node < block_end; block_node++) {
         // Skip the node in the block if its already visited.
         if (!is_visited[block_node]) {
@@ -160,7 +166,7 @@ class Index {
           dist_t dist = distance(query, nodeData(block_node), distance_param);
 
           bool block_node_worth_exploring = false;
-#pragma omp critical
+          // #pragma omp critical
           if (neighbors.size() < buffer_size || dist < neighbors.top().first) {
             // If the node in the block is closest than the furthest found neighbor add it.
             neighbors.emplace(dist, block_node);
@@ -179,7 +185,7 @@ class Index {
 
                 dist_t nbr_dist = distance(query, nodeData(links[nbr_idx]), distance_param);
 
-#pragma omp critical
+                // #pragma omp critical
                 if (neighbors.size() < buffer_size || nbr_dist < neighbors.top().first) {
                   candidates.emplace(-nbr_dist, links[nbr_idx]);
                   neighbors.emplace(nbr_dist, links[nbr_idx]);
@@ -189,6 +195,116 @@ class Index {
                 }
               }
             }
+          }
+        }
+      }
+    }
+    return neighbors;
+  }
+
+  struct ThreadCandidateQueues {
+    std::array<PriorityQueue, NUM_THREADS> thread_queues;
+
+    dist_node_t getBestCandidate() {
+      int queue_index = -1;
+      dist_node_t best_candidate;
+
+      for (int i = 0; i < thread_queues.size(); i++) {
+        if (thread_queues[i].empty()) {
+          continue;
+        }
+        if (queue_index == -1 || thread_queues[i].top().first < best_candidate.first) {
+          best_candidate = thread_queues[i].top();
+          queue_index = i;
+        }
+      }
+      if (queue_index == -1) {
+        throw std::logic_error("Attempted to pop from empty ThreadCandidateQueue");
+      }
+
+      thread_queues[queue_index].pop();
+
+      return best_candidate;
+    }
+
+    bool empty() const {
+      bool empty = thread_queues[0].empty();
+      for (int i = 1; i < thread_queues.size(); i++) {
+        empty = empty && thread_queues[i].empty();
+      }
+      return empty;
+    }
+  };
+
+  PriorityQueue blockBeamSearch(const void* query, const node_id_t entry_node,
+                                const int buffer_size, node_id_t max_distance_from_node) {
+    // returns an iterable list of node_id_t's, sorted by distance (ascending)
+    PriorityQueue neighbors;   // W in the paper
+    PriorityQueue candidates;  // C in the paper
+
+    is_visited.clear();
+    dist_t inital_dist = distance(query, nodeData(entry_node), distance_param);
+
+    candidates.emplace(-inital_dist, entry_node);
+    neighbors.emplace(inital_dist, entry_node);
+    is_visited.insert(entry_node);
+
+    while (!candidates.empty()) {
+      // get nearest element from candidates
+      dist_node_t d_node = candidates.top();
+      if ((-d_node.first) > neighbors.top().first) {
+        break;
+      }
+      candidates.pop();
+
+      ThreadCandidateQueues thread_queues;
+
+      dist_t furthest_nbr_dist = neighbors.top().first;
+      bool buffer_full = neighbors.size() >= buffer_size;
+
+      auto [block_start, block_end] = getNodeBlock(d_node.second, max_distance_from_node);
+
+#pragma omp parallel for default(none) shared(block_start, block_end, thread_queues, buffer_full, \
+                                              furthest_nbr_dist, query) num_threads(NUM_THREADS)
+      for (node_id_t block_node = block_start; block_node < block_end; block_node++) {
+        if (is_visited[block_node]) {
+          continue;
+        }
+        is_visited.insert(block_node);
+
+        dist_t block_node_dist = distance(query, nodeData(block_node), distance_param);
+
+        if (block_node_dist >= furthest_nbr_dist && buffer_full) {
+          continue;
+        }
+
+        int thread_idx = omp_get_thread_num();
+        thread_queues.thread_queues[thread_idx].emplace(-block_node_dist, block_node);
+
+        node_id_t* block_node_links = nodeLinks(block_node);
+
+        for (int i = 0; i < M; i++) {
+          node_id_t nbr = block_node_links[i];
+          if (!is_visited[nbr]) {
+            is_visited.insert(nbr);
+
+            dist_t nbr_dist = distance(query, nodeData(nbr), distance_param);
+
+            if (nbr_dist < furthest_nbr_dist || !buffer_full) {
+              thread_queues.thread_queues[thread_idx].emplace(-nbr_dist, nbr);
+            }
+          }
+        }
+      }
+
+      while (!thread_queues.empty()) {
+        dist_node_t best_candidate = thread_queues.getBestCandidate();
+
+        if (best_candidate.first < neighbors.top().first || neighbors.size() < buffer_size) {
+          candidates.emplace(best_candidate.first, best_candidate.second);
+          neighbors.emplace(-best_candidate.first, best_candidate.second);
+          if (neighbors.size() > buffer_size) {
+            neighbors.pop();
           }
         }
       }
@@ -622,7 +738,7 @@ class Index {
     // List of algorithms (so far): GORDER, IN_DEG, OUT_DEG, RCM, HUB_SORT, HUB_CLUSTER, DBG
     switch (algorithm) {
       case GraphOrder::GORDER:
-        P = g_order<node_id_t>(outdegree_table, 5);
+        P = g_order<node_id_t>(outdegree_table, 20);
         break;
       case GraphOrder::IN_DEG:
         P = indegree_order<node_id_t>(outdegree_table);
@@ -673,7 +789,7 @@ class Index {
   std::vector<dist_label_t> blockSearch(const void* query, const int K, int ef_search,
                                         node_id_t half_block_size, int n_initializations = 100) {
     node_id_t entry_node = searchInitialization(query, n_initializations);
-    PriorityQueue neighbors = blockBeamSearch(query, entry_node, ef_search, half_block_size);
+    PriorityQueue neighbors = blockBeamSearchOld(query, entry_node, ef_search, half_block_size);
     std::vector<dist_label_t> results;
     while (neighbors.size() > K) {
       neighbors.pop();
