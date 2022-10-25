@@ -41,7 +41,7 @@ class GorderPriorityQueue{
 	}
 
 	GorderPriorityQueue(size_t N){
-		for (int i = 0; i < N; i++){
+		for (unsigned int i = 0; i < N; i++){
 			list.push_back({i,0});
 			index_table[i] = i;
 		}

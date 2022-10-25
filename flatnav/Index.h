@@ -32,7 +32,8 @@ public:
 	// dist_t is the type of the underlying metric space (i.e. for uint8_t images, dist_t is uint8_t)
 	// label_t is a fixed-size 
 	// both dist_t and label_t must be POD types - we do not support custom classes here
-	enum class GraphOrder {GORDER, IN_DEG, OUT_DEG, RCM, HUB_SORT, HUB_CLUSTER, DBG};
+	enum class GraphOrder {GORDER, IN_DEG, OUT_DEG, RCM, RCM_2HOP, HUB_SORT, HUB_CLUSTER, DBG, BCORDER};
+	enum class ProfileOrder {GORDER, RCM};
 	typedef std::pair< dist_t, label_t > dist_label_t;
 
 private:
@@ -49,12 +50,12 @@ private:
 
 	char* index_memory;
 
-	int M;
-	int data_size_bytes; // size of one data point (we do not support variable-size data e.g. strings)
-	int node_size_bytes; // Node consists of: ([data] [M links] [data label]). This layout was selected as 
+	size_t M;
+	size_t data_size_bytes; // size of one data point (we do not support variable-size data e.g. strings)
+	size_t node_size_bytes; // Node consists of: ([data] [M links] [data label]). This layout was selected as 
 	// the one with the best cache performance after trying several options 
-	int max_num_nodes; // determines size of internal pre-allocated memory
-	int cur_num_nodes;
+	size_t max_num_nodes; // determines size of internal pre-allocated memory
+	size_t cur_num_nodes;
 
 	DistanceFunction<dist_t> distance; // call-by-pointer distance function
 	void* distance_param; // TODO: get rid of this shit. 
@@ -136,6 +137,28 @@ private:
 		}
 		return neighbors;
 	}
+
+  void reprune(node_id_t node){
+    node_id_t* links = nodeLinks(node);
+    PriorityQueue neighbors;
+    for (int i = 0; i < M; i++){
+      if (links[i] != node){
+        dist_t dist = distance(nodeData(node), nodeData(links[i]), distance_param);
+        neighbors.emplace(dist, links[i]);
+        links[i] = node;
+      }
+    }
+    selectNeighbors(neighbors, M);
+    int i = 0;
+    while(neighbors.size() > 0){
+      node_id_t neighbor_node_id = neighbors.top().second;
+      links[i] = neighbor_node_id;
+      i++;
+      if (i > M){i = M;}
+      neighbors.pop();
+    }
+  }
+
 
 	void selectNeighbors(PriorityQueue& neighbors, const int M){
 		// selects neighbors from the PriorityQueue, according to HNSW heuristic
@@ -398,7 +421,7 @@ public:
 			neighbors.pop();
 		}
 		std::sort( results.begin(), results.end(), [](const dist_label_t& left, const dist_label_t& right)
-			{ return left.second < right.second; });
+			{ return left.first < right.first; });
 		return results;
 	}
 
@@ -410,11 +433,11 @@ public:
 		// int or node_id_t (which can be compiler dependent).
 		// currently none of this is safe across machines or even across compilers, probably. Really sorry about that.
 
-		out.write(reinterpret_cast< char *>(&M), sizeof(int));
-		out.write(reinterpret_cast< char *>(&max_num_nodes), sizeof(int));
-		out.write(reinterpret_cast< char *>(&cur_num_nodes), sizeof(int));
-		out.write(reinterpret_cast< char *>(&data_size_bytes), sizeof(int));
-		out.write(reinterpret_cast< char *>(&node_size_bytes), sizeof(int));
+		out.write(reinterpret_cast< char *>(&M), sizeof(size_t));
+		out.write(reinterpret_cast< char *>(&max_num_nodes), sizeof(size_t));
+		out.write(reinterpret_cast< char *>(&cur_num_nodes), sizeof(size_t));
+		out.write(reinterpret_cast< char *>(&data_size_bytes), sizeof(size_t));
+		out.write(reinterpret_cast< char *>(&node_size_bytes), sizeof(size_t));
 		
 		// write the index partition
 		size_t index_memory_size = node_size_bytes*max_num_nodes;
@@ -425,11 +448,11 @@ public:
 	void load(const std::string& location, SpaceInterface<dist_t> *space){
 
 		std::ifstream in(location, std::ios::binary);
-		in.read(reinterpret_cast< char *>(&M), sizeof(int));
-		in.read(reinterpret_cast< char *>(&max_num_nodes), sizeof(int));
-		in.read(reinterpret_cast< char *>(&cur_num_nodes), sizeof(int));
-		in.read(reinterpret_cast< char *>(&data_size_bytes), sizeof(int));
-		in.read(reinterpret_cast< char *>(&node_size_bytes), sizeof(int));
+		in.read(reinterpret_cast< char *>(&M), sizeof(size_t));
+		in.read(reinterpret_cast< char *>(&max_num_nodes), sizeof(size_t));
+		in.read(reinterpret_cast< char *>(&cur_num_nodes), sizeof(size_t));
+		in.read(reinterpret_cast< char *>(&data_size_bytes), sizeof(size_t));
+		in.read(reinterpret_cast< char *>(&node_size_bytes), sizeof(size_t));
 
 		if (index_memory != NULL){
 			delete[] index_memory;
@@ -506,16 +529,123 @@ public:
 			}
 		}
 		std::vector<node_id_t> P;
-		// List of algorithms (so far): GORDER, IN_DEG, OUT_DEG, RCM, HUB_SORT, HUB_CLUSTER, DBG
+		// List of algorithms (so far): GORDER, IN_DEG, OUT_DEG, RCM, HUB_SORT, HUB_CLUSTER, DBG, BCORDER
 		switch(algorithm){
 			case GraphOrder::GORDER      : P = g_order<node_id_t>(outdegree_table, 5); break;
 			case GraphOrder::IN_DEG      : P = indegree_order<node_id_t>(outdegree_table); break;
 			case GraphOrder::OUT_DEG     : P = outdegree_order<node_id_t>(outdegree_table); break;
 			case GraphOrder::RCM         : P = rcm_order<node_id_t>(outdegree_table); break;
+			case GraphOrder::RCM_2HOP    : P = rcm_order_2hop<node_id_t>(outdegree_table); break;
 			case GraphOrder::HUB_SORT    : P = hubsort_order<node_id_t>(outdegree_table); break;
 			case GraphOrder::HUB_CLUSTER : P = hubcluster_order<node_id_t>(outdegree_table); break;
 			case GraphOrder::DBG         : P = dbg_order<node_id_t>(outdegree_table, 8); break;
+			case GraphOrder::BCORDER     : P = bc_order<node_id_t>(outdegree_table, 5); break;
 		}
 		relabel(P);
 	}
+
+	void profile_reorder(void* queries, int n_queries,
+		int ef_search, ProfileOrder algorithm){
+		// construct the weighted graph
+		std::vector< std::vector<node_id_t> > outdegree_table(cur_num_nodes);
+		std::vector< std::vector<float> > outdegree_weights(cur_num_nodes);
+		for (node_id_t node = 0; node < cur_num_nodes; node++){
+			node_id_t* links = nodeLinks(node);
+			for (int i = 0; i < M; i++){
+				if (links[i] != node){
+					outdegree_table[node].push_back(links[i]);
+					outdegree_weights[node].push_back(1.0);
+				}
+			}
+		}
+		for (int i = 0; i < n_queries; i++){
+			char* q = (char*)(queries) + i*(data_size_bytes);
+			profile_search(q, ef_search, outdegree_table, outdegree_weights);
+		}
+
+		std::vector<node_id_t> P;
+		switch(algorithm){
+			case ProfileOrder::GORDER    : P = weighted_g_order<node_id_t>(outdegree_table, outdegree_weights, 5); break;
+			case ProfileOrder::RCM       : P = weighted_rcm_order<node_id_t>(outdegree_table, outdegree_weights); break;
+		}
+
+		relabel(P);
+	}
+
+
+	void profile_search(const void* query, int ef_search,
+		std::vector< std::vector<node_id_t> > &outdegree_table,
+		std::vector< std::vector<float> > &outdegree_weights,
+		int n_initializations = 100){
+		node_id_t entry_node = searchInitialization(query, n_initializations);
+		// this is a pasted-in profiled version of beamSearch
+		int buffer_size = ef_search;
+		// returns an iterable list of node_id_t's, sorted by distance (ascending)
+		PriorityQueue neighbors; // W in the paper
+		PriorityQueue candidates; // C in the paper
+
+		is_visited.clear();
+		dist_t dist = distance(query, nodeData(entry_node), distance_param);
+		dist_t max_dist = dist;
+
+		candidates.emplace(-dist, entry_node);
+		neighbors.emplace(dist, entry_node);
+		is_visited.insert(entry_node);
+
+		while (!candidates.empty()) {
+			// get nearest element from candidates
+			dist_node_t d_node = candidates.top();
+			if ((-d_node.first) > max_dist){
+				break;
+			}
+			candidates.pop();
+			node_id_t* d_node_links = nodeLinks(d_node.second);
+			for (int i = 0; i < M; i++){
+				if (!is_visited[d_node_links[i]]){ // if we haven't visited the node yet
+					is_visited.insert(d_node_links[i]);
+					dist = distance(query, nodeData(d_node_links[i]), distance_param);
+					// we have done the traversal d_node.second -> d_node_links[i]
+					// so we have to increment the corresponding weight
+					for (int outdegree_index = 0; outdegree_index < outdegree_table[d_node.second].size(); outdegree_index++){
+						if (outdegree_table[d_node.second][outdegree_index] == d_node_links[i]){
+							outdegree_weights[d_node.second][outdegree_index] += 1;
+						}
+					}
+					// Include the node in the buffer if buffer isn't full or if node is closer than a node already in the buffer
+					if (neighbors.size() < buffer_size || dist < max_dist) {
+						candidates.emplace(-dist, d_node_links[i]);
+						neighbors.emplace(dist, d_node_links[i]);
+						if (neighbors.size() > buffer_size){
+							neighbors.pop();
+						}
+						if (!neighbors.empty()){
+							max_dist = neighbors.top().first;
+						}
+					}
+				}
+			}
+		}
+	}
+
+
+	std::vector< int > location_search(const void* query, const int K, int ef_search, int n_initializations = 100){
+		node_id_t entry_node = searchInitialization(query, n_initializations);
+		PriorityQueue neighbors = beamSearch(query, entry_node, ef_search);
+		std::vector<dist_node_t> results;
+		while(neighbors.size() > K){
+			neighbors.pop();
+		}
+		while( neighbors.size() > 0 ){
+			results.emplace_back(neighbors.top().first, neighbors.top().second);
+			neighbors.pop();
+		}
+		std::sort( results.begin(), results.end(), [](const dist_node_t& left, const dist_node_t& right)
+			{ return left.first < right.first; });
+		std::vector<int> out(K);
+		for (int i = 0; i < K; i++){
+			out[i] = results[i].second;
+		}
+		return out;
+	}
+
 };
