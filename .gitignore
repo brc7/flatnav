@@ -64,3 +64,6 @@ data/*
 
 .vscode
 indices
+.cache
+build
+compile_commands.json
