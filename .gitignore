@@ -61,3 +61,6 @@ data/*
 
 # Filesystems 
 .DS_Store
+
+.vscode
+indices
