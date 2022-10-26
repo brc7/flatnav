@@ -23,6 +23,8 @@
 #include <fstream>
 #include <cstring>
 
+#define NUM_THREADS 1
+
 
 template <typename dist_t, typename label_t>
 class Index
@@ -137,6 +139,117 @@ private:
 		}
 		return neighbors;
 	}
+
+	// This is from Nick's branch (should probably remove before PR).
+	inline std::pair<node_id_t, node_id_t> getNodeBlock(node_id_t node,
+														node_id_t max_distance_from_node) {
+		// We can't use std::max(0, cur_node - max_distance_from_node) because of overflow with uint32
+		node_id_t block_start = node < max_distance_from_node ? 0 : node - max_distance_from_node;
+		node_id_t block_end = std::min<node_id_t>(node + max_distance_from_node, cur_num_nodes);
+
+		return {block_start, block_end};
+	}
+
+
+	PriorityQueue greedyBlockFlipFlop(const void* query, const node_id_t entry_node, const int buffer_size, node_id_t max_distance_from_node){
+		// Iterates the following two steps, until we cannot make progress:
+		// (A) Run greedy descent, until we hit a local minimum (cannot walk along an out-edge toward the query)
+		// (B) Compute distances to all points within a block surrounding the local minimum.
+		// We can trade computation for accuracy by varying the block size. (B) can be done in parallel.
+
+		PriorityQueue neighbors;
+		is_visited.clear();
+
+		std::vector<dist_t> block_distances(2 * max_distance_from_node);
+		std::fill(block_distances.begin(), block_distances.end(), std::numeric_limits<dist_t>::max());
+
+		dist_t candidate_dist = distance(query, nodeData(entry_node), distance_param);
+		dist_t max_dist = candidate_dist;  // Distance to furthest neighbor in buffer.
+		dist_t cur_dist = candidate_dist;  // Dist to current active node in the search.
+		node_id_t cur_node = entry_node;
+
+		neighbors.emplace(candidate_dist, entry_node);
+		is_visited.insert(entry_node);
+
+		bool at_global_min = false;
+		while (!at_global_min) {  // Continue to run the greedy-block iteration.
+			// (A) Run greedy descent until we cannot make progress anymore.
+			bool at_local_min = false;
+			while (!at_local_min) {
+				// Do greedy search to find the local min.
+				at_local_min = true;
+				node_id_t* cur_node_links = nodeLinks(cur_node);
+				for (int i = 0; i < M; i++) {
+					if (!is_visited[cur_node_links[i]]){  // if we haven't visited the node yet.
+						is_visited.insert(cur_node_links[i]);
+						candidate_dist = distance(query, nodeData(cur_node_links[i]), distance_param);
+						// Include the node in the buffer of neighbors if the buffer isn't
+						// full or if node is closer than a node already in the buffer.
+						if (neighbors.size() < buffer_size || candidate_dist < max_dist) {
+							neighbors.emplace(-candidate_dist, cur_node_links[i]);
+							if (neighbors.size() > buffer_size){
+								neighbors.pop();
+							}
+							if (!neighbors.empty()){
+								max_dist = neighbors.top().first;
+							}
+						}
+						if (candidate_dist < cur_dist) {
+							// If this node is better than the current node.
+							at_local_min = false;
+							cur_dist = candidate_dist;
+							cur_node = cur_node_links[i];
+						}
+					}
+				}
+			}
+			// (B) At this point, we have completed the greedy search and found a local minimum.
+			// Next, we search within a block to determine whether there is a nearby node from
+			// which we can continue the greedy search.
+			at_global_min = true;
+			auto [block_start, block_end] = getNodeBlock(cur_node, max_distance_from_node);
+			// This is necessary so that we skip nodes that were previously visited (and therefore did 
+			// not have their distance calculated) when updating the neighbors.
+			std::fill(block_distances.begin(), block_distances.end(), std::numeric_limits<dist_t>::max());
+
+			#pragma omp parallel for default(none) shared(block_start, block_end, query, \
+													      block_distances) num_threads(NUM_THREADS)
+			for (node_id_t block_node = block_start; block_node < block_end; block_node++) {
+				if (is_visited[block_node]){
+					continue;
+				}
+				is_visited.insert(block_node);
+				dist_t block_node_dist = distance(query, nodeData(block_node), distance_param);
+				node_id_t block_index = block_node - block_start;
+				block_distances[block_index] = block_node_dist;
+			}
+
+			// Now we update the neighbors and the cur_node.
+			for (node_id_t block_node = block_start; block_node < block_end; block_node++){
+				node_id_t block_index = block_node - block_start;
+				dist_t candidate_dist = block_distances[block_index];
+				// If we didn't visit the node, then block_distances = maximum possible distance value
+				// and we will ignore the node (prevents us from double-inserting to the PriorityQueue).
+				if (neighbors.size() < buffer_size || candidate_dist < max_dist) {
+					neighbors.emplace(-candidate_dist, block_node);
+					if (neighbors.size() > buffer_size){
+						neighbors.pop();
+					}
+					if (!neighbors.empty()){
+						max_dist = neighbors.top().first;
+					}
+				}
+				if (candidate_dist < cur_dist){
+					// This node is better than cur_node - we can try to continue greedy descent from here.
+					at_global_min = false;
+					cur_dist = candidate_dist;
+					cur_node = block_node;
+				}
+			}
+		}
+		return neighbors;
+	}
+
 
   void reprune(node_id_t node){
     node_id_t* links = nodeLinks(node);
