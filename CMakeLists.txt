@@ -74,7 +74,7 @@ ADD_DEPENDENCIES( FLAT_NAV_LIB CNPY )
 TARGET_LINK_LIBRARIES( FLAT_NAV_LIB ${CNPY_LIB} )
 set_target_properties( FLAT_NAV_LIB PROPERTIES LINKER_LANGUAGE CXX)
 
-foreach(CONSTRUCT_EXEC construct_npy reorder_npy query_npy construct_float32 reorder_float32 query_float32 construct_uint8 reorder_uint8 query_uint8)
+foreach(CONSTRUCT_EXEC construct_npy reorder_npy query_npy query_block_npy construct_float32 reorder_float32 query_float32 construct_uint8 reorder_uint8 query_uint8)
   ADD_EXECUTABLE( ${CONSTRUCT_EXEC} ${PROJECT_SOURCE_DIR}/tools/${CONSTRUCT_EXEC}.cpp )
   ADD_DEPENDENCIES( ${CONSTRUCT_EXEC} FLAT_NAV_LIB )
   TARGET_LINK_LIBRARIES( 
